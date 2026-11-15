@@ -8,6 +8,12 @@ target/
 # Environment specific values and secrets never leave the host
 deploy/jboss-eap7/local.properties
 *.cs
+# C# sources are allowed only in the .NET module; anywhere else *.cs is an Elytron credential store
+!src/OntapNfs/**/*.cs
 *.jks
 *.keystore
 identityiq.jar
+# .NET build output
+src/OntapNfs/**/bin/
+src/OntapNfs/**/obj/
+src/OntapNfs/**/TestResults/

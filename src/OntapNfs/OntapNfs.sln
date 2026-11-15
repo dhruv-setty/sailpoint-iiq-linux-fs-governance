@@ -1,0 +1,40 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OntapNfs.Core", "OntapNfs.Core\OntapNfs.Core.csproj", "{062D0D82-5A4A-4D8E-A70E-0B83953AA353}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OntapNfs.Ontap", "OntapNfs.Ontap\OntapNfs.Ontap.csproj", "{0B38E7D1-95B8-447B-AD66-DA0E5449A75D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OntapNfs.Deploy", "OntapNfs.Deploy\OntapNfs.Deploy.csproj", "{7186CA38-BEE7-48FC-8337-E1DDB7854DAE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OntapNfs.Tests", "OntapNfs.Tests\OntapNfs.Tests.csproj", "{DCCDED73-2EA8-4219-8A6C-0725785710F1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{062D0D82-5A4A-4D8E-A70E-0B83953AA353}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{062D0D82-5A4A-4D8E-A70E-0B83953AA353}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{062D0D82-5A4A-4D8E-A70E-0B83953AA353}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{062D0D82-5A4A-4D8E-A70E-0B83953AA353}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B38E7D1-95B8-447B-AD66-DA0E5449A75D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B38E7D1-95B8-447B-AD66-DA0E5449A75D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B38E7D1-95B8-447B-AD66-DA0E5449A75D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B38E7D1-95B8-447B-AD66-DA0E5449A75D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7186CA38-BEE7-48FC-8337-E1DDB7854DAE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7186CA38-BEE7-48FC-8337-E1DDB7854DAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7186CA38-BEE7-48FC-8337-E1DDB7854DAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7186CA38-BEE7-48FC-8337-E1DDB7854DAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCCDED73-2EA8-4219-8A6C-0725785710F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCCDED73-2EA8-4219-8A6C-0725785710F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCCDED73-2EA8-4219-8A6C-0725785710F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCCDED73-2EA8-4219-8A6C-0725785710F1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

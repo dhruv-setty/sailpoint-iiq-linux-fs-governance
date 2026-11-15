@@ -14,6 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Repository conventions enforced in the build: no TypeScript, JavaScript or
  * shell sources; documentation uses console fences rather than shell fences;
  * prose avoids em and en dashes; nothing looks like a committed secret.
+ * A {@code .cs} file is an Elytron credential store everywhere except under
+ * the .NET module, where it must be C# source text.
  */
 class RepositoryPolicyTest {
 
@@ -63,6 +65,13 @@ class RepositoryPolicyTest {
             if (name.endsWith(".jar") || name.endsWith(".class")) {
                 continue;
             }
+            String rel = RepoFiles.root().relativize(p).toString().replace('\\', '/');
+            if (name.endsWith(".cs") && rel.startsWith(RepoFiles.DOTNET_MODULE)) {
+                if (!isCSharpSource(p)) {
+                    problems.add(rel + " has a .cs name but is not C# source text");
+                }
+                continue;
+            }
             if (name.equals("local.properties") || name.endsWith(".cs") || name.endsWith(".keystore") || name.endsWith(".jks")) {
                 problems.add(RepoFiles.root().relativize(p) + " must not be committed");
                 continue;
@@ -73,5 +82,23 @@ class RepositoryPolicyTest {
             }
         }
         assertTrue(problems.isEmpty(), String.join("\n", problems));
+    }
+
+    /** UTF-8 text with no NUL bytes that declares a namespace or a using directive. */
+    private static boolean isCSharpSource(Path p) throws Exception {
+        byte[] bytes = Files.readAllBytes(p);
+        for (byte b : bytes) {
+            if (b == 0) {
+                return false;
+            }
+        }
+        String text;
+        try {
+            text = java.nio.charset.StandardCharsets.UTF_8.newDecoder()
+                    .decode(java.nio.ByteBuffer.wrap(bytes)).toString();
+        } catch (java.nio.charset.CharacterCodingException e) {
+            return false;
+        }
+        return text.contains("namespace ") || text.contains("using ");
     }
 }
