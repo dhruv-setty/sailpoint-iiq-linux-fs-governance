@@ -1,5 +1,4 @@
-# IdentityIQ Legacy Filesystem Governance
-
+# 
 SailPoint IdentityIQ project for governing legacy Linux file systems: POSIX
 and ACL provisioning, access certification, and JBoss EAP 7 deployment.
 
