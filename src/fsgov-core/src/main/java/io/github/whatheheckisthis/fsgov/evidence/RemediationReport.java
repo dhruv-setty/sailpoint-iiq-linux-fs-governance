@@ -19,10 +19,15 @@ public final class RemediationReport {
     private final Instant capturedAt;
     private final List<RemediationRecord> records;
 
-    public RemediationReport(String certification, String planDigest, List<RemediationRecord> records) {
+    /**
+     * @param capturedAt when the after state was aggregated. Taken from the caller,
+     *                   never from the clock, so the digest is reproducible.
+     */
+    public RemediationReport(String certification, String planDigest, Instant capturedAt,
+                             List<RemediationRecord> records) {
         this.certification = certification;
         this.planDigest = planDigest;
-        this.capturedAt = Instant.now();
+        this.capturedAt = java.util.Objects.requireNonNull(capturedAt, "capturedAt");
         this.records = List.copyOf(records);
     }
 
