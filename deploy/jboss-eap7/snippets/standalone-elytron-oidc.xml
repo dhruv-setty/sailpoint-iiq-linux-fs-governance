@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Resulting model of cli/05-elytron-oidc.cli: OpenID Connect sign in to the
+  IdentityIQ UI with Microsoft Entra ID. The client secret lives in the
+  credential store. The container authenticates the user; IdentityIQ then
+  maps the principal to an identity with the FSGov-SSOAuthentication rule.
+-->
+<subsystem xmlns="urn:wildfly:elytron-oidc-client:1.0">
+  <provider name="entra">
+    <provider-url>https://login.microsoftonline.com/${entra.tenant.id}/v2.0</provider-url>
+    <ssl-required>ALL</ssl-required>
+    <principal-attribute>preferred_username</principal-attribute>
+  </provider>
+  <secure-deployment name="identityiq.war">
+    <provider>entra</provider>
+    <client-id>${entra.client.id}</client-id>
+    <credential name="secret">
+      <credential-reference store="iiq-store" alias="entra-client-secret"/>
+    </credential>
+  </secure-deployment>
+</subsystem>

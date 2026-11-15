@@ -1,0 +1,5 @@
+# IdentityIQ repository datasource. See snippets/standalone-datasource.xml for the resulting model.
+batch
+data-source add --name=IdentityIQDS --jndi-name=java:jboss/datasources/IdentityIQDS --driver-name=sqlserver --connection-url="jdbc:sqlserver://${iiq.db.host}:1433;databaseName=identityiq;encrypt=true;trustServerCertificate=false" --user-name=${iiq.db.user} --credential-reference={store=iiq-store, alias=iiq-db} --min-pool-size=10 --initial-pool-size=10 --max-pool-size=100 --pool-prefill=true --flush-strategy=IdleConnections --transaction-isolation=TRANSACTION_READ_COMMITTED --validate-on-match=true --background-validation=false --valid-connection-checker-class-name=org.jboss.jca.adapters.jdbc.extensions.mssql.MSSQLValidConnectionChecker --exception-sorter-class-name=org.jboss.jca.adapters.jdbc.extensions.mssql.MSSQLExceptionSorter --blocking-timeout-wait-millis=30000 --idle-timeout-minutes=5 --statistics-enabled=true
+run-batch
+/subsystem=datasources/data-source=IdentityIQDS:test-connection-in-pool

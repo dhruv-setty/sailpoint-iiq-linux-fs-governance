@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="FSGov-SSOAuthentication" type="SSOAuthentication">
+  <Description>
+    Rule based SSO for container managed OIDC sign in (JBoss elytron-oidc-client
+    with Microsoft Entra ID). The container has already validated the ID token;
+    this rule maps the authenticated principal (preferred_username, the UPN) to
+    an identity through the email attribute. Returns null when there is no
+    principal or no unique match, which sends the user to the standard login
+    page instead of signing in the wrong person.
+  </Description>
+  <Signature returnType="Object">
+    <Inputs>
+      <Argument name="log"/>
+      <Argument name="context"/>
+      <Argument name="httpRequest"><Description>javax.servlet.http.HttpServletRequest</Description></Argument>
+    </Inputs>
+    <Returns>
+      <Argument name="identity"/>
+    </Returns>
+  </Signature>
+  <Source><![CDATA[
+import java.security.Principal;
+import java.util.List;
+import sailpoint.object.Filter;
+import sailpoint.object.Identity;
+import sailpoint.object.QueryOptions;
+
+Principal p = httpRequest.getUserPrincipal();
+if (p == null || p.getName() == null || p.getName().length() == 0) {
+    return null;
+}
+String upn = p.getName().trim().toLowerCase();
+QueryOptions qo = new QueryOptions();
+qo.addFilter(Filter.ignoreCase(Filter.eq("email", upn)));
+qo.addFilter(Filter.eq("inactive", Boolean.FALSE));
+List matches = context.getObjects(Identity.class, qo);
+if (matches == null || matches.size() != 1) {
+    log.warn("fsgov sso: " + (matches == null ? 0 : matches.size()) + " active identities match " + upn);
+    return null;
+}
+return matches.get(0);
+]]></Source>
+</Rule>

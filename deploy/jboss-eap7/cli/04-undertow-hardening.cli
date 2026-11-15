@@ -1,0 +1,11 @@
+# Web tier settings for the IdentityIQ UI behind a TLS terminating load balancer.
+batch
+/subsystem=undertow/servlet-container=default/setting=session-cookie:add(http-only=true, secure=true)
+/subsystem=undertow/servlet-container=default:write-attribute(name=default-session-timeout, value=30)
+/subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=proxy-address-forwarding, value=true)
+/subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=max-post-size, value=104857600)
+/subsystem=undertow/configuration=filter/response-header=hsts:add(header-name=Strict-Transport-Security, header-value="max-age=31536000; includeSubDomains")
+/subsystem=undertow/server=default-server/host=default-host/filter-ref=hsts:add()
+/subsystem=undertow/configuration=filter/response-header=server-header:add(header-name=Server, header-value="")
+/subsystem=undertow/server=default-server/host=default-host/filter-ref=server-header:add()
+run-batch

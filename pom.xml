@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>io.github.whatheheckisthis</groupId>
+  <artifactId>fsgov-parent</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>IdentityIQ Legacy Filesystem Governance</name>
+  <description>Governance and provisioning model for legacy Linux file systems, built for SailPoint IdentityIQ.</description>
+  <url>https://github.com/whatheheckisthis/IdentityIQ-Legacy-Filesystem-Governance</url>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://opensource.org/licenses/MIT</url>
+    </license>
+  </licenses>
+
+  <modules>
+    <module>src/fsgov-core</module>
+    <module>src/fsgov-config-validation</module>
+  </modules>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>17</maven.compiler.release>
+    <junit.version>5.11.3</junit.version>
+    <identityiq.version>8.4</identityiq.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.github.whatheheckisthis</groupId>
+        <artifactId>fsgov-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.13.0</version>
+          <configuration>
+            <release>${maven.compiler.release}</release>
+            <compilerArgs>
+              <arg>-Xlint:all</arg>
+            </compilerArgs>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.5.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.4.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>0.8.12</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+  <profiles>
+    <!--
+      The IdentityIQ adapter compiles against identityiq.jar, which SailPoint
+      licenses to customers and which is not published to any public
+      repository. The profile is excluded from default builds. It activates
+      when the jar has been installed into the local Maven repository, or
+      explicitly with -Piiq. See src/fsgov-iiq-adapter/README.md.
+    -->
+    <profile>
+      <id>iiq</id>
+      <activation>
+        <file>
+          <exists>${user.home}/.m2/repository/sailpoint/identityiq/${identityiq.version}/identityiq-${identityiq.version}.jar</exists>
+        </file>
+      </activation>
+      <modules>
+        <module>src/fsgov-iiq-adapter</module>
+      </modules>
+    </profile>
+  </profiles>
+</project>

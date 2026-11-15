@@ -1,0 +1,5 @@
+# Dedicated audit trail for fsgov connector and rule logging, separate from server.log.
+batch
+/subsystem=logging/periodic-rotating-file-handler=FSGOV:add(file={relative-to=jboss.server.log.dir, path=fsgov.log}, suffix=".yyyy-MM-dd", append=true, autoflush=true, formatter="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5p [%c] (%t) %s%e%n")
+/subsystem=logging/logger=io.github.whatheheckisthis.fsgov:add(level=INFO, handlers=[FSGOV], use-parent-handlers=false)
+run-batch

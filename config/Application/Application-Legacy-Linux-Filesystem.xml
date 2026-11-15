@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Application PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<!--
+  Legacy Linux file servers: ext3 and ext4 volumes, XFS volumes, and the
+  NFSv3 exports that publish them. Accounts and groups are aggregated from
+  the inventory files written by the host-side collector (getent passwd,
+  getent group, getfacl -R, /etc/exports). Provisioning is delegated to the
+  fsgov custom connector, which converts the IdentityIQ plan into an ordered
+  change plan and places it on the change queue for the host executor.
+
+  Entitlements:
+    groups             governed POSIX groups, one per share and access level
+    directPermissions  named user ACL entries, exception use only
+-->
+<Application connector="io.github.whatheheckisthis.fsgov.iiq.LegacyFilesystemConnector"
+             featuresString="PROVISIONING, GROUP_PROVISIONING, DIRECT_PERMISSIONS, NO_RANDOM_ACCESS"
+             icon="serverIcon" name="FSGov Legacy Linux Filesystem" profileClass="" type="FSGov Legacy Linux Filesystem">
+  <Attributes>
+    <Map>
+      <entry key="targetHost" value="%%FS_TARGET_HOST%%"/>
+      <entry key="inventoryDirectory" value="%%FS_INVENTORY_DIR%%"/>
+      <entry key="changeQueueDirectory" value="%%FS_CHANGE_QUEUE_DIR%%"/>
+      <entry key="governedRoots">
+        <value>
+          <List>
+            <String>/srv/finance</String>
+            <String>/srv/audit</String>
+            <String>/srv/projects</String>
+          </List>
+        </value>
+      </entry>
+      <entry key="nfsClientForEvidence" value="%%FS_NFS_EVIDENCE_CLIENT%%"/>
+      <entry key="minimumManagedGid" value="4000"/>
+      <entry key="maximumManagedGid" value="4999"/>
+      <entry key="groupNamePattern" value="^fs_[a-z0-9]+_(ro|rw)$"/>
+      <entry key="beforeProvisioningRule" value="FSGov-BeforeProvisioning"/>
+      <entry key="afterProvisioningRule" value="FSGov-AfterProvisioning"/>
+      <entry key="sysDescriptions">
+        <value>
+          <Map>
+            <entry key="en_US" value="Legacy Linux file shares on ext3, ext4 and XFS, published over NFSv3."/>
+          </Map>
+        </value>
+      </entry>
+    </Map>
+  </Attributes>
+  <CorrelationRule>
+    <Reference class="sailpoint.object.Rule" name="FSGov-Correlation-LinuxAccount"/>
+  </CorrelationRule>
+  <Owner>
+    <Reference class="sailpoint.object.Identity" name="%%FS_APP_OWNER%%"/>
+  </Owner>
+  <Schemas>
+    <Schema displayAttribute="name" identityAttribute="name" instanceAttribute=""
+            nativeObjectType="account" objectType="account">
+      <AttributeDefinition name="name" type="string">
+        <Description>POSIX login name.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="uid" type="int"/>
+      <AttributeDefinition name="primaryGid" type="int"/>
+      <AttributeDefinition name="gecos" type="string">
+        <Description>GECOS field. Legacy convention places the employeeId in the second comma separated field.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="homeDirectory" type="string"/>
+      <AttributeDefinition name="shell" type="string"/>
+      <AttributeDefinition entitlement="true" managed="true" multi="true" name="groups" schemaObjectType="group" type="string">
+        <Description>Direct memberships of governed groups.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition entitlement="true" managed="false" multi="true" name="directPermissions" type="string">
+        <Description>Named user ACL entries in the form path:rwx.</Description>
+      </AttributeDefinition>
+    </Schema>
+    <Schema displayAttribute="name" identityAttribute="name" instanceAttribute=""
+            nativeObjectType="group" objectType="group">
+      <AttributeDefinition name="name" type="string"/>
+      <AttributeDefinition name="gid" type="int"/>
+      <AttributeDefinition multi="true" name="nestedGroups" type="string">
+        <Description>Child groups resolved by the directory service. Empty on hosts that use flat /etc/group.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="sharePath" type="string"/>
+      <AttributeDefinition name="permissions" type="string"/>
+    </Schema>
+  </Schemas>
+</Application>

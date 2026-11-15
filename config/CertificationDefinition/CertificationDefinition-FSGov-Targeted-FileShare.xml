@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE CertificationDefinition PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<!--
+  Targeted (Focused) certification of file share entitlements on the legacy
+  Linux file system application. Reviewers are the entitlement owners (the
+  business owner of each share) with the identity's manager as fallback.
+  Revokes are processed immediately through the provisioning engine, so a
+  revoke becomes a Remove AttributeRequest that the fsgov connector turns
+  into an ordered change plan. Attribute keys follow a UI export of a Focused
+  definition; diff against an export from the target release before import.
+-->
+<CertificationDefinition name="FSGov Targeted File Share Entitlement Review">
+  <Attributes>
+    <Map>
+      <entry key="type" value="Focused"/>
+      <entry key="certificationNameTemplate" value="File share review: ${fullDate}"/>
+      <entry key="shortNameTemplate" value="File share review"/>
+      <entry key="entitySelectionType" value="All"/>
+      <entry key="entitlementSelectionType" value="Filter"/>
+      <entry key="entitlementFilter">
+        <value>
+          <CompositeFilter operation="AND">
+            <Filter operation="EQ" property="application.name" value="FSGov Legacy Linux Filesystem"/>
+            <Filter operation="IN" property="attribute">
+              <Value>
+                <List>
+                  <String>groups</String>
+                  <String>directPermissions</String>
+                </List>
+              </Value>
+            </Filter>
+          </CompositeFilter>
+        </value>
+      </entry>
+      <entry key="includeAdditionalEntitlements" value="true"/>
+      <entry key="includeRoles" value="false"/>
+      <entry key="includePolicyViolations" value="true"/>
+      <entry key="certifierSelectionType" value="EntitlementOwner"/>
+      <entry key="fallbackCertifierName" value="%%CERT_FALLBACK_OWNER%%"/>
+      <entry key="useManagerAsFallback" value="true"/>
+      <entry key="certificationOwner" value="%%CERT_ADMIN_WORKGROUP%%"/>
+      <entry key="exclusionRuleName" value="FSGov-CertificationExclusion"/>
+      <entry key="phaseChangeRuleName" value="FSGov-Remediation-Evidence"/>
+      <entry key="activePeriodDurationAmount" value="21"/>
+      <entry key="activePeriodDurationScale" value="day"/>
+      <entry key="challengePeriodEnabled" value="false"/>
+      <entry key="remediationPeriodEnabled" value="true"/>
+      <entry key="remediationPeriodDurationAmount" value="7"/>
+      <entry key="remediationPeriodDurationScale" value="day"/>
+      <entry key="processRevokesImmediately" value="true"/>
+      <entry key="allowListBulkRevocation" value="false"/>
+      <entry key="allowListBulkApprove" value="false"/>
+      <entry key="requireApprovalComments" value="false"/>
+      <entry key="requireRevokeComments" value="true"/>
+      <entry key="sendPreDelegationCompletionEmails" value="false"/>
+      <entry key="suppressInitialNotification" value="false"/>
+    </Map>
+  </Attributes>
+  <Owner>
+    <Reference class="sailpoint.object.Identity" name="%%CERT_ADMIN_WORKGROUP%%"/>
+  </Owner>
+</CertificationDefinition>

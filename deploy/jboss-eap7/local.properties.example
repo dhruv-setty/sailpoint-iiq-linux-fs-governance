@@ -1,0 +1,9 @@
+# Copy to local.properties (git ignored) and fill in on the target host only.
+driver.jar.path=/opt/drivers/mssql-jdbc.jar
+credential.store.masked.password=MASK-replace-with-elytron-tool-output
+iiq.db.host=sqlcluster.example.internal
+iiq.db.user=identityiq
+iiq.db.password=replace-on-host
+entra.tenant.id=00000000-0000-0000-0000-000000000000
+entra.client.id=00000000-0000-0000-0000-000000000000
+entra.client.secret=replace-on-host

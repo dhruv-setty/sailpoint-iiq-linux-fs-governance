@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  JDBC driver module for the IdentityIQ repository on Microsoft SQL Server.
+  Place the driver jar next to this file and keep the resource-root path in
+  step with its file name. The jar is not committed to this repository.
+-->
+<module xmlns="urn:jboss:module:1.9" name="com.microsoft.sqlserver">
+  <resources>
+    <resource-root path="mssql-jdbc.jar"/>
+  </resources>
+  <dependencies>
+    <module name="javax.api"/>
+    <module name="javax.transaction.api"/>
+    <module name="javax.xml.bind.api" optional="true"/>
+  </dependencies>
+</module>

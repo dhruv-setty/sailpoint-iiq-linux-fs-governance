@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE sailpoint PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<!--
+  Certification generation. Scheduled certifications in IdentityIQ are
+  TaskSchedule objects run by the Certification Manager executor with the
+  definition to generate. certificationDefinitionId holds the definition
+  name here; on import, resolve it to the id if the target release requires
+  ids (see docs/runbook.md, Certification generation).
+-->
+<sailpoint>
+  <TaskSchedule description="Quarterly targeted review of file share entitlements." name="FSGov Quarterly File Share Review">
+    <Arguments>
+      <Map>
+        <entry key="executor" value="Certification Manager"/>
+        <entry key="certificationDefinitionId" value="FSGov Targeted File Share Entitlement Review"/>
+        <entry key="launcher" value="%%CERT_ADMIN_WORKGROUP%%"/>
+      </Map>
+    </Arguments>
+    <CronExpressions>
+      <String>0 0 6 1 1,4,7,10 ?</String>
+    </CronExpressions>
+  </TaskSchedule>
+  <TaskSchedule description="Semi annual manager review of legacy file system access." name="FSGov Semi Annual Manager Review">
+    <Arguments>
+      <Map>
+        <entry key="executor" value="Certification Manager"/>
+        <entry key="certificationDefinitionId" value="FSGov Manager Access Review"/>
+        <entry key="launcher" value="%%CERT_ADMIN_WORKGROUP%%"/>
+      </Map>
+    </Arguments>
+    <CronExpressions>
+      <String>0 0 6 15 3,9 ?</String>
+    </CronExpressions>
+  </TaskSchedule>
+</sailpoint>

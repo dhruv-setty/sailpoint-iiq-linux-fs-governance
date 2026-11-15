@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE sailpoint PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<!--
+  Registers the fsgov custom connector type so the application can be
+  created from the UI. Merged into the existing Connector Registry; never
+  replaces it.
+-->
+<sailpoint>
+  <ImportAction name="merge">
+    <Configuration name="Connector Registry">
+      <Attributes>
+        <Map>
+          <entry key="applicationTemplates">
+            <value>
+              <List>
+                <Application connector="io.github.whatheheckisthis.fsgov.iiq.LegacyFilesystemConnector"
+                             featuresString="PROVISIONING, GROUP_PROVISIONING, DIRECT_PERMISSIONS, NO_RANDOM_ACCESS"
+                             name="FSGov Legacy Linux Filesystem Template" type="FSGov Legacy Linux Filesystem">
+                  <Attributes>
+                    <Map>
+                      <entry key="minimumManagedGid" value="4000"/>
+                      <entry key="maximumManagedGid" value="4999"/>
+                    </Map>
+                  </Attributes>
+                  <Schemas>
+                    <Schema displayAttribute="name" identityAttribute="name" nativeObjectType="account" objectType="account">
+                      <AttributeDefinition name="name" type="string"/>
+                      <AttributeDefinition entitlement="true" managed="true" multi="true" name="groups" schemaObjectType="group" type="string"/>
+                    </Schema>
+                    <Schema displayAttribute="name" identityAttribute="name" nativeObjectType="group" objectType="group">
+                      <AttributeDefinition name="name" type="string"/>
+                      <AttributeDefinition name="gid" type="int"/>
+                    </Schema>
+                  </Schemas>
+                </Application>
+              </List>
+            </value>
+          </entry>
+        </Map>
+      </Attributes>
+    </Configuration>
+  </ImportAction>
+</sailpoint>

@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="FSGov-AfterProvisioning" type="AfterProvisioning">
+  <Description>
+    Writes one audit event per account request with the change plan the
+    connector produced (returned in the result attribute fsgovChangePlan) and
+    its SHA-256 digest. This is the provisioning half of the evidence chain;
+    the certification phase change rule writes the review half.
+  </Description>
+  <Signature>
+    <Inputs>
+      <Argument name="log"/>
+      <Argument name="context"/>
+      <Argument name="plan"/>
+      <Argument name="application"/>
+      <Argument name="result"><Description>ProvisioningResult returned by the connector.</Description></Argument>
+    </Inputs>
+  </Signature>
+  <Source><![CDATA[
+import java.util.Iterator;
+import sailpoint.object.AuditEvent;
+import sailpoint.object.ProvisioningPlan.AccountRequest;
+import sailpoint.object.ProvisioningResult;
+import sailpoint.server.Auditor;
+
+if (plan == null || plan.getAccountRequests() == null) {
+    return;
+}
+for (Iterator it = plan.getAccountRequests().iterator(); it.hasNext();) {
+    AccountRequest req = (AccountRequest) it.next();
+    if (!application.getName().equals(req.getApplication())) {
+        continue;
+    }
+    ProvisioningResult r = req.getResult() != null ? req.getResult() : result;
+    AuditEvent ev = new AuditEvent();
+    ev.setAction("fsgovProvisioning");
+    ev.setSource("FSGov-AfterProvisioning");
+    ev.setApplication(application.getName());
+    ev.setAccountName(req.getNativeIdentity());
+    ev.setTarget(plan.getIdentity() != null ? plan.getIdentity().getName() : req.getNativeIdentity());
+    if (r != null) {
+        ev.setAttribute("status", r.getStatus());
+        ev.setAttribute("fsgovChangePlan", r.getAttribute("fsgovChangePlan"));
+        ev.setAttribute("fsgovPlanDigest", r.getAttribute("fsgovPlanDigest"));
+        ev.setAttribute("fsgovWarnings", r.getAttribute("fsgovWarnings"));
+    }
+    Auditor.log(ev);
+}
+context.commitTransaction();
+]]></Source>
+</Rule>

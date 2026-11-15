@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="FSGov-BuildMap-HR" type="BuildMap">
+  <Description>Normalises the HR extract: trims values, upper cases the worker number, lower cases the Linux login and maps HR status codes to active, leave or terminated.</Description>
+  <Signature returnType="Map">
+    <Inputs>
+      <Argument name="log"/>
+      <Argument name="context"/>
+      <Argument name="cols"><Description>Column names from the header row.</Description></Argument>
+      <Argument name="record"><Description>Values for the current row.</Description></Argument>
+      <Argument name="application"/>
+      <Argument name="schema"/>
+      <Argument name="state"/>
+    </Inputs>
+    <Returns>
+      <Argument name="map"><Description>Attribute map for the account.</Description></Argument>
+    </Returns>
+  </Signature>
+  <Source><![CDATA[
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import sailpoint.connector.DelimitedFileConnector;
+
+Map map = DelimitedFileConnector.defaultBuildMap(cols, record);
+Map clean = new HashMap();
+for (Iterator it = map.keySet().iterator(); it.hasNext();) {
+    String key = (String) it.next();
+    Object v = map.get(key);
+    clean.put(key, v == null ? null : v.toString().trim());
+}
+
+String id = (String) clean.get("employeeId");
+if (id != null) {
+    clean.put("employeeId", id.toUpperCase());
+}
+String mgr = (String) clean.get("managerId");
+if (mgr != null && mgr.length() > 0) {
+    clean.put("managerId", mgr.toUpperCase());
+}
+String login = (String) clean.get("linuxLogin");
+if (login != null) {
+    clean.put("linuxLogin", login.toLowerCase());
+}
+
+String raw = (String) clean.get("status");
+String status = "active";
+if (raw != null) {
+    String s = raw.toUpperCase();
+    if (s.equals("T") || s.equals("TERM") || s.equals("TERMINATED") || s.equals("R")) {
+        status = "terminated";
+    } else if (s.equals("L") || s.equals("LOA") || s.equals("LEAVE")) {
+        status = "leave";
+    }
+}
+clean.put("status", status);
+return clean;
+]]></Source>
+</Rule>

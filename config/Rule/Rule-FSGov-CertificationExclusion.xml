@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="FSGov-CertificationExclusion" type="CertificationExclusion">
+  <Description>
+    Excludes from file share reviews: (a) identities with workerType service,
+    which are reviewed in the service account campaign by their owners, and
+    (b) items for groups outside the governed catalog, which the targeted
+    campaign cannot remediate. Excluded items are listed on the certification
+    with the returned explanation, so the exclusion itself is evidence.
+  </Description>
+  <Signature returnType="String">
+    <Inputs>
+      <Argument name="log"/>
+      <Argument name="context"/>
+      <Argument name="entity"/>
+      <Argument name="certification"/>
+      <Argument name="certContext"/>
+      <Argument name="items"/>
+      <Argument name="itemsToExclude"/>
+      <Argument name="state"/>
+    </Inputs>
+    <Returns>
+      <Argument name="explanation"/>
+    </Returns>
+  </Signature>
+  <ReferencedRules>
+    <Reference class="sailpoint.object.Rule" name="FSGov-Library"/>
+  </ReferencedRules>
+  <Source><![CDATA[
+import java.util.Iterator;
+import sailpoint.object.Certifiable;
+import sailpoint.object.EntitlementGroup;
+import sailpoint.object.Identity;
+
+String explanation = null;
+
+if (entity instanceof Identity) {
+    Identity identity = (Identity) entity;
+    if ("service".equalsIgnoreCase((String) identity.getAttribute("workerType"))) {
+        itemsToExclude.addAll(items);
+        items.clear();
+        return "Service identity: reviewed in the service account campaign by its owner.";
+    }
+}
+
+for (Iterator it = items.iterator(); it.hasNext();) {
+    Certifiable c = (Certifiable) it.next();
+    if (!(c instanceof EntitlementGroup)) {
+        continue;
+    }
+    EntitlementGroup eg = (EntitlementGroup) c;
+    if (eg.getApplication() == null || !FSGOV_FS_APP.equals(eg.getApplication().getName())) {
+        continue;
+    }
+    Object groups = eg.getAttributes() == null ? null : eg.getAttributes().get("groups");
+    boolean governed = false;
+    for (Iterator g = fsgovAsList(groups).iterator(); g.hasNext();) {
+        if (fsgovIsGovernedGroup(context, (String) g.next())) {
+            governed = true;
+        }
+    }
+    if (!governed && eg.getPermissions() == null) {
+        itemsToExclude.add(c);
+        it.remove();
+        explanation = "Group outside the governed share catalog; tracked by the orphan report.";
+    }
+}
+return explanation;
+]]></Source>
+</Rule>

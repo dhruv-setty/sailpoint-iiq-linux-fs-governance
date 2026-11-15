@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE sailpoint PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<!--
+  Entitlement catalog for the governed share groups. The fsgov* extended
+  attributes bind each group to its path, gid and permissions. The connector
+  builds its EntitlementCatalog from these objects, so the catalog in
+  IdentityIQ is the single source of truth for what a group grants. Owners
+  are the business owners who review the targeted certification.
+-->
+<sailpoint>
+  <ManagedAttribute attribute="groups" displayName="Finance share, read" requestable="true" type="group" value="fs_fin_ro">
+    <ApplicationRef><Reference class="sailpoint.object.Application" name="FSGov Legacy Linux Filesystem"/></ApplicationRef>
+    <Attributes>
+      <Map>
+        <entry key="fsgovPath" value="/srv/finance"/>
+        <entry key="fsgovGid" value="4100"/>
+        <entry key="fsgovPermissions" value="r-x"/>
+        <entry key="fsgovInherit" value="true"/>
+        <entry key="sysDescriptions"><value><Map><entry key="en_US" value="Read and traverse the finance share."/></Map></value></entry>
+      </Map>
+    </Attributes>
+    <Owner><Reference class="sailpoint.object.Identity" name="%%FINANCE_SHARE_OWNER%%"/></Owner>
+  </ManagedAttribute>
+  <ManagedAttribute attribute="groups" displayName="Finance share, write" requestable="true" type="group" value="fs_fin_rw">
+    <ApplicationRef><Reference class="sailpoint.object.Application" name="FSGov Legacy Linux Filesystem"/></ApplicationRef>
+    <Attributes>
+      <Map>
+        <entry key="fsgovPath" value="/srv/finance"/>
+        <entry key="fsgovGid" value="4101"/>
+        <entry key="fsgovPermissions" value="rwx"/>
+        <entry key="fsgovInherit" value="true"/>
+        <entry key="fsgovPrivileged" value="true"/>
+        <entry key="sysDescriptions"><value><Map><entry key="en_US" value="Create, change and delete content on the finance share."/></Map></value></entry>
+      </Map>
+    </Attributes>
+    <Owner><Reference class="sailpoint.object.Identity" name="%%FINANCE_SHARE_OWNER%%"/></Owner>
+  </ManagedAttribute>
+  <ManagedAttribute attribute="groups" displayName="Audit share, read" requestable="true" type="group" value="fs_audit_ro">
+    <ApplicationRef><Reference class="sailpoint.object.Application" name="FSGov Legacy Linux Filesystem"/></ApplicationRef>
+    <Attributes>
+      <Map>
+        <entry key="fsgovPath" value="/srv/audit"/>
+        <entry key="fsgovGid" value="4200"/>
+        <entry key="fsgovPermissions" value="r-x"/>
+        <entry key="fsgovInherit" value="true"/>
+        <entry key="sysDescriptions"><value><Map><entry key="en_US" value="Read and traverse the internal audit share."/></Map></value></entry>
+      </Map>
+    </Attributes>
+    <Owner><Reference class="sailpoint.object.Identity" name="%%AUDIT_SHARE_OWNER%%"/></Owner>
+  </ManagedAttribute>
+  <ManagedAttribute attribute="groups" displayName="Audit share, write" requestable="true" type="group" value="fs_audit_rw">
+    <ApplicationRef><Reference class="sailpoint.object.Application" name="FSGov Legacy Linux Filesystem"/></ApplicationRef>
+    <Attributes>
+      <Map>
+        <entry key="fsgovPath" value="/srv/audit"/>
+        <entry key="fsgovGid" value="4201"/>
+        <entry key="fsgovPermissions" value="rwx"/>
+        <entry key="fsgovInherit" value="true"/>
+        <entry key="fsgovPrivileged" value="true"/>
+        <entry key="sysDescriptions"><value><Map><entry key="en_US" value="Create, change and delete working papers on the internal audit share."/></Map></value></entry>
+      </Map>
+    </Attributes>
+    <Owner><Reference class="sailpoint.object.Identity" name="%%AUDIT_SHARE_OWNER%%"/></Owner>
+  </ManagedAttribute>
+</sailpoint>

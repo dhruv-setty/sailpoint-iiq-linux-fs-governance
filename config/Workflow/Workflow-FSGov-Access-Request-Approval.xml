@@ -1,0 +1,135 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Workflow PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<!--
+  Access request approval for file share entitlements. Serial approval by the
+  requestee's manager, then by the owner of each requested share group (the
+  ManagedAttribute owner). Write access to a privileged share (fsgovPrivileged)
+  also requires the file system application owner. Rejection by any approver
+  ends the request with no provisioning.
+-->
+<Workflow explicitTransitions="true" libraries="Identity,Approval,LCM" name="FSGov Access Request Approval" type="LCMProvisioning">
+  <Variable input="true" name="identityName">
+    <Description>Identity the request is for.</Description>
+  </Variable>
+  <Variable input="true" name="plan">
+    <Description>ProvisioningPlan built by Lifecycle Manager.</Description>
+  </Variable>
+  <Variable input="true" name="launcher"/>
+  <Variable initializer="LCM" input="true" name="source"/>
+  <Variable initializer="true" name="approved"/>
+  <Variable name="project"/>
+  <Variable name="approvers"/>
+  <Variable initializer="false" input="true" name="trace"/>
+  <Description>Manager, share owner and, for privileged write, application owner approval for legacy file share access.</Description>
+  <RuleLibraries>
+    <Reference class="sailpoint.object.Rule" name="FSGov-Library"/>
+  </RuleLibraries>
+
+  <Step icon="Start" name="Start">
+    <Transition to="Compile Project"/>
+  </Step>
+
+  <Step action="call:compileProvisioningProject" icon="Task" name="Compile Project" resultVariable="project">
+    <Arg name="identityName" value="ref:identityName"/>
+    <Arg name="plan" value="ref:plan"/>
+    <Arg name="requester" value="ref:launcher"/>
+    <Arg name="source" value="ref:source"/>
+    <Arg name="optimisticProvisioning" value="false"/>
+    <Arg name="disableRetryRequest" value="false"/>
+    <Transition to="Resolve Approvers"/>
+  </Step>
+
+  <Step icon="Default" name="Resolve Approvers" resultVariable="approvers">
+    <Script>
+      <Source><![CDATA[
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import sailpoint.object.Application;
+import sailpoint.object.Identity;
+import sailpoint.object.ManagedAttribute;
+import sailpoint.object.ProvisioningPlan.AccountRequest;
+import sailpoint.object.ProvisioningPlan.AttributeRequest;
+import sailpoint.object.ProvisioningPlan.Operation;
+import sailpoint.api.ManagedAttributer;
+
+List names = new ArrayList();
+Identity who = wfcontext.getSailPointContext().getObjectByName(Identity.class, identityName);
+if (who != null && who.getManager() != null) {
+    names.add(who.getManager().getName());
+}
+boolean privileged = false;
+Application app = wfcontext.getSailPointContext().getObjectByName(Application.class, FSGOV_FS_APP);
+if (plan != null && app != null && plan.getAccountRequests() != null) {
+    for (Iterator it = plan.getAccountRequests().iterator(); it.hasNext();) {
+        AccountRequest ar = (AccountRequest) it.next();
+        if (!FSGOV_FS_APP.equals(ar.getApplication()) || ar.getAttributeRequests() == null) {
+            continue;
+        }
+        for (Iterator a = ar.getAttributeRequests().iterator(); a.hasNext();) {
+            AttributeRequest req = (AttributeRequest) a.next();
+            if (!"groups".equals(req.getName()) || !Operation.Add.equals(req.getOperation())) {
+                continue;
+            }
+            for (Iterator v = fsgovAsList(req.getValue()).iterator(); v.hasNext();) {
+                ManagedAttribute ma = ManagedAttributer.get(wfcontext.getSailPointContext(), app, "groups", (String) v.next());
+                if (ma == null) {
+                    continue;
+                }
+                if (ma.getOwner() != null && !names.contains(ma.getOwner().getName())) {
+                    names.add(ma.getOwner().getName());
+                }
+                if ("true".equals(String.valueOf(ma.getAttribute("fsgovPrivileged")))) {
+                    privileged = true;
+                }
+            }
+        }
+    }
+}
+if (privileged && app.getOwner() != null && !names.contains(app.getOwner().getName())) {
+    names.add(app.getOwner().getName());
+}
+if (names.isEmpty()) {
+    names.add("%%FS_GOVERNANCE_WORKGROUP%%");
+}
+return names;
+]]></Source>
+    </Script>
+    <Transition to="Approve"/>
+  </Step>
+
+  <Step icon="Approval" name="Approve">
+    <Approval mode="serial" name="File share access approval" owner="ref:approvers" send="identityName,plan">
+      <Arg name="workItemDescription" value="script:&quot;Approve file share access for &quot; + identityName"/>
+      <Arg name="workItemRequester" value="ref:launcher"/>
+      <AfterScript>
+        <Source><![CDATA[
+import sailpoint.object.WorkItem;
+if (item != null && item.getState() != WorkItem.State.Finished) {
+    workflow.put("approved", "false");
+}
+]]></Source>
+      </AfterScript>
+    </Approval>
+    <Transition to="Provision" when="script:&quot;true&quot;.equals(String.valueOf(approved))"/>
+    <Transition to="Rejected"/>
+  </Step>
+
+  <Step action="call:provisionProject" icon="Provision" name="Provision">
+    <Arg name="project" value="ref:project"/>
+    <Arg name="background" value="false"/>
+    <Transition to="Stop"/>
+  </Step>
+
+  <Step icon="Message" name="Rejected">
+    <Script>
+      <Source><![CDATA[
+wfcontext.getWorkflowCase().addMessage(new sailpoint.tools.Message(sailpoint.tools.Message.Type.Warn,
+    "File share request for " + identityName + " was rejected; nothing was provisioned."));
+]]></Source>
+    </Script>
+    <Transition to="Stop"/>
+  </Step>
+
+  <Step icon="Stop" name="Stop"/>
+</Workflow>

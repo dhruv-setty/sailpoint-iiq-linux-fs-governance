@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="FSGov-Remediation-Evidence" type="CertificationPhaseChange">
+  <Description>
+    Closes the revocation loop. On entry to the Remediation or End phase it
+    records, for every item a reviewer revoked, an audit event naming the
+    reviewer, the entitlement, the decision time and the provisioning request
+    the revoke produced. Verification that the access is actually gone is
+    done by the next aggregation and the fsgov evidence diff; this rule only
+    records what was decided and sent.
+  </Description>
+  <Signature>
+    <Inputs>
+      <Argument name="log"/>
+      <Argument name="context"/>
+      <Argument name="certification"/>
+      <Argument name="previousPhase"/>
+      <Argument name="nextPhase"/>
+    </Inputs>
+  </Signature>
+  <Source><![CDATA[
+import java.util.Iterator;
+import sailpoint.object.AuditEvent;
+import sailpoint.object.Certification;
+import sailpoint.object.CertificationAction;
+import sailpoint.object.CertificationEntity;
+import sailpoint.object.CertificationItem;
+import sailpoint.server.Auditor;
+
+if (nextPhase != Certification.Phase.Remediation && nextPhase != Certification.Phase.End) {
+    return;
+}
+int count = 0;
+for (Iterator e = certification.getEntities().iterator(); e.hasNext();) {
+    CertificationEntity entity = (CertificationEntity) e.next();
+    if (entity.getItems() == null) {
+        continue;
+    }
+    for (Iterator i = entity.getItems().iterator(); i.hasNext();) {
+        CertificationItem item = (CertificationItem) i.next();
+        CertificationAction action = item.getAction();
+        if (action == null || action.getStatus() != CertificationAction.Status.Remediated) {
+            continue;
+        }
+        AuditEvent ev = new AuditEvent();
+        ev.setAction("fsgovRevocationDecision");
+        ev.setSource(action.getActorName());
+        ev.setTarget(entity.getIdentity());
+        ev.setString1(certification.getName());
+        ev.setString2(item.getShortDescription());
+        ev.setString3(nextPhase.toString());
+        ev.setAttribute("decisionDate", action.getDecisionDate());
+        ev.setAttribute("remediationKickedOff", Boolean.valueOf(action.isRemediationKickedOff()));
+        ev.setAttribute("comments", action.getComments());
+        Auditor.log(ev);
+        count++;
+    }
+}
+context.commitTransaction();
+log.info("fsgov: recorded " + count + " revocation decisions for " + certification.getName());
+]]></Source>
+</Rule>

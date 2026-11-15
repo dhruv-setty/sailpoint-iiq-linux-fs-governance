@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE CertificationDefinition PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<!--
+  Manager certification for the legacy file system and HR applications. Each
+  manager reviews the share access of direct reports. Complements the
+  targeted owner review: the owner confirms the content warrants the access,
+  the manager confirms the person still needs it.
+-->
+<CertificationDefinition name="FSGov Manager Access Review">
+  <Attributes>
+    <Map>
+      <entry key="type" value="Manager"/>
+      <entry key="certificationNameTemplate" value="Manager access review for ${certifier}: ${fullDate}"/>
+      <entry key="shortNameTemplate" value="Manager access review"/>
+      <entry key="certifier" value="%%CERT_TOP_MANAGER%%"/>
+      <entry key="subordinateCertificationEnabled" value="true"/>
+      <entry key="flattenManagerCertificationHierarchy" value="false"/>
+      <entry key="completeHierarchy" value="true"/>
+      <entry key="includeApplications">
+        <value>
+          <List>
+            <String>FSGov Legacy Linux Filesystem</String>
+          </List>
+        </value>
+      </entry>
+      <entry key="includeAdditionalEntitlements" value="true"/>
+      <entry key="includeRoles" value="true"/>
+      <entry key="includePolicyViolations" value="true"/>
+      <entry key="exclusionRuleName" value="FSGov-CertificationExclusion"/>
+      <entry key="phaseChangeRuleName" value="FSGov-Remediation-Evidence"/>
+      <entry key="activePeriodDurationAmount" value="30"/>
+      <entry key="activePeriodDurationScale" value="day"/>
+      <entry key="remediationPeriodEnabled" value="true"/>
+      <entry key="remediationPeriodDurationAmount" value="7"/>
+      <entry key="remediationPeriodDurationScale" value="day"/>
+      <entry key="processRevokesImmediately" value="true"/>
+      <entry key="requireRevokeComments" value="true"/>
+      <entry key="certificationOwner" value="%%CERT_ADMIN_WORKGROUP%%"/>
+    </Map>
+  </Attributes>
+  <Owner>
+    <Reference class="sailpoint.object.Identity" name="%%CERT_ADMIN_WORKGROUP%%"/>
+  </Owner>
+</CertificationDefinition>

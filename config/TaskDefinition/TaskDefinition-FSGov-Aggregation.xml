@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE sailpoint PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<sailpoint>
+  <TaskDefinition name="FSGov HR Aggregation" resultAction="Rename" subType="task_item_type_acct_aggregation" type="AccountAggregation">
+    <Attributes>
+      <Map>
+        <entry key="applications" value="FSGov HR Authoritative"/>
+        <entry key="checkDeleted" value="true"/>
+        <entry key="checkHistory" value="false"/>
+        <entry key="correlateEntitlements" value="false"/>
+        <entry key="deltaAggregation" value="false"/>
+        <entry key="noOptimizeReaggregation" value="false"/>
+        <entry key="promoteManagedAttributes" value="false"/>
+        <entry key="sequential" value="true"/>
+      </Map>
+    </Attributes>
+    <Description>Aggregates the authoritative HR extract. Runs before every file system aggregation.</Description>
+    <Parent>
+      <Reference class="sailpoint.object.TaskDefinition" name="Account Aggregation"/>
+    </Parent>
+  </TaskDefinition>
+
+  <TaskDefinition name="FSGov Filesystem Account Aggregation" resultAction="Rename" subType="task_item_type_acct_aggregation" type="AccountAggregation">
+    <Attributes>
+      <Map>
+        <entry key="applications" value="FSGov Legacy Linux Filesystem"/>
+        <entry key="checkDeleted" value="true"/>
+        <entry key="correlateEntitlements" value="true"/>
+        <entry key="noOptimizeReaggregation" value="true"/>
+        <entry key="promoteManagedAttributes" value="true"/>
+        <entry key="sequential" value="true"/>
+      </Map>
+    </Attributes>
+    <Description>Aggregates POSIX accounts, memberships and direct ACL entries from the host inventory. noOptimizeReaggregation is set so that a manual change on the host is always detected.</Description>
+    <Parent>
+      <Reference class="sailpoint.object.TaskDefinition" name="Account Aggregation"/>
+    </Parent>
+  </TaskDefinition>
+
+  <TaskDefinition name="FSGov Filesystem Group Aggregation" resultAction="Rename" subType="task_item_type_acct_grp_aggregation" type="AccountGroupAggregation">
+    <Attributes>
+      <Map>
+        <entry key="applications" value="FSGov Legacy Linux Filesystem"/>
+        <entry key="checkDeleted" value="true"/>
+        <entry key="descriptionAttribute" value="sharePath"/>
+        <entry key="descriptionLocale" value="en_US"/>
+      </Map>
+    </Attributes>
+    <Description>Aggregates governed groups with their gid, nested groups and bound share path.</Description>
+    <Parent>
+      <Reference class="sailpoint.object.TaskDefinition" name="Account Group Aggregation"/>
+    </Parent>
+  </TaskDefinition>
+</sailpoint>

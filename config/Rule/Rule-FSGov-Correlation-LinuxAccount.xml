@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="FSGov-Correlation-LinuxAccount" type="Correlation">
+  <Description>
+    Correlates POSIX accounts on legacy hosts. Order of evidence: the employeeId
+    held in the second GECOS field by legacy convention, then the linuxLogin
+    identity attribute promoted from HR. Accounts that match neither stay
+    uncorrelated and surface as orphans in the targeted certification.
+  </Description>
+  <Signature returnType="Map">
+    <Inputs>
+      <Argument name="log"/>
+      <Argument name="context"/>
+      <Argument name="environment"/>
+      <Argument name="application"/>
+      <Argument name="account"/>
+      <Argument name="link"/>
+    </Inputs>
+    <Returns>
+      <Argument name="identityAttributeName"/>
+      <Argument name="identityAttributeValue"/>
+    </Returns>
+  </Signature>
+  <Source><![CDATA[
+import java.util.HashMap;
+import java.util.Map;
+
+Map result = new HashMap();
+String gecos = account.getStringAttribute("gecos");
+if (gecos != null) {
+    String[] parts = gecos.split(",", -1);
+    if (parts.length > 1) {
+        String candidate = parts[1].trim().toUpperCase();
+        if (candidate.matches("^[A-Z]?[0-9]{5,8}$")) {
+            result.put("identityAttributeName", "employeeId");
+            result.put("identityAttributeValue", candidate);
+            return result;
+        }
+    }
+}
+String name = account.getIdentity();
+if (name != null && !name.equals("root") && account.getIntAttribute("uid") >= 1000) {
+    result.put("identityAttributeName", "linuxLogin");
+    result.put("identityAttributeValue", name.toLowerCase());
+}
+return result;
+]]></Source>
+</Rule>

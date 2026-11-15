@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Policy PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<!--
+  Separation of duties: nobody may hold write access to both the finance
+  share (where ledgers and payment files are prepared) and the internal audit
+  share (where the audit of those files is recorded). Holding both would let
+  one person change a record and the audit evidence about it.
+-->
+<Policy certificationActions="Remediated,Mitigated,Delegated" configPage="entitlementPolicy.xhtml"
+        executor="sailpoint.policy.EntitlementSODPolicyExecutor" name="FSGov SoD Finance Write vs Audit Write"
+        state="Active" type="EntitlementSOD" violationOwnerType="Manager">
+  <Description>Write access to the finance share conflicts with write access to the internal audit share.</Description>
+  <Owner>
+    <Reference class="sailpoint.object.Identity" name="%%FS_GOVERNANCE_WORKGROUP%%"/>
+  </Owner>
+  <GenericConstraint name="Finance share write and audit share write" violationOwnerType="Manager">
+    <Description>An identity holds fs_fin_rw and fs_audit_rw.</Description>
+    <RemediationAdvice>Revoke one of the two write groups. Read access to the other share remains permissible.</RemediationAdvice>
+    <LeftSelector>
+      <IdentitySelector>
+        <MatchExpression>
+          <MatchTerm name="groups" value="fs_fin_rw">
+            <ApplicationRef>
+              <Reference class="sailpoint.object.Application" name="FSGov Legacy Linux Filesystem"/>
+            </ApplicationRef>
+          </MatchTerm>
+        </MatchExpression>
+      </IdentitySelector>
+    </LeftSelector>
+    <RightSelector>
+      <IdentitySelector>
+        <MatchExpression>
+          <MatchTerm name="groups" value="fs_audit_rw">
+            <ApplicationRef>
+              <Reference class="sailpoint.object.Application" name="FSGov Legacy Linux Filesystem"/>
+            </ApplicationRef>
+          </MatchTerm>
+        </MatchExpression>
+      </IdentitySelector>
+    </RightSelector>
+  </GenericConstraint>
+</Policy>

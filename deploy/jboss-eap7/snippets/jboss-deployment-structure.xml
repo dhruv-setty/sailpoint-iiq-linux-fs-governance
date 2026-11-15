@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WEB-INF/jboss-deployment-structure.xml for identityiq.war. IdentityIQ ships
+  its own Spring, Hibernate, Jersey and logging libraries; the container's
+  implementations must not be added to the deployment, or class loading
+  conflicts follow. Compare with the JBoss notes in the SailPoint
+  installation guide for the release in use before relying on this list.
+-->
+<jboss-deployment-structure xmlns="urn:jboss:deployment-structure:1.2">
+  <deployment>
+    <exclude-subsystems>
+      <subsystem name="jaxrs"/>
+      <subsystem name="jpa"/>
+      <subsystem name="weld"/>
+      <subsystem name="logging"/>
+    </exclude-subsystems>
+    <exclusions>
+      <module name="org.hibernate"/>
+      <module name="org.jboss.resteasy.resteasy-jaxrs"/>
+      <module name="org.apache.log4j"/>
+      <module name="org.slf4j"/>
+      <module name="com.fasterxml.jackson.core.jackson-databind"/>
+    </exclusions>
+    <dependencies>
+      <module name="com.microsoft.sqlserver"/>
+    </dependencies>
+  </deployment>
+</jboss-deployment-structure>

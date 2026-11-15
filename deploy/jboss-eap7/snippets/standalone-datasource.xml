@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Fragment of standalone.xml for the IdentityIQ repository datasource. The
+  password is held in an Elytron credential store (see cli/02-credential-store.cli),
+  never in clear text. Apply it with cli/03-datasource.cli rather than editing
+  standalone.xml by hand; this file documents the resulting model.
+-->
+<subsystem xmlns="urn:jboss:domain:datasources:6.0">
+  <datasources>
+    <datasource jndi-name="java:jboss/datasources/IdentityIQDS" pool-name="IdentityIQDS" enabled="true" use-java-context="true" statistics-enabled="true">
+      <connection-url>jdbc:sqlserver://${iiq.db.host:sqlcluster.example.internal}:1433;databaseName=identityiq;encrypt=true;trustServerCertificate=false</connection-url>
+      <driver>sqlserver</driver>
+      <transaction-isolation>TRANSACTION_READ_COMMITTED</transaction-isolation>
+      <pool>
+        <min-pool-size>10</min-pool-size>
+        <initial-pool-size>10</initial-pool-size>
+        <max-pool-size>100</max-pool-size>
+        <prefill>true</prefill>
+        <flush-strategy>IdleConnections</flush-strategy>
+      </pool>
+      <security>
+        <user-name>${iiq.db.user:identityiq}</user-name>
+        <credential-reference store="iiq-store" alias="iiq-db"/>
+      </security>
+      <validation>
+        <valid-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.mssql.MSSQLValidConnectionChecker"/>
+        <validate-on-match>true</validate-on-match>
+        <background-validation>false</background-validation>
+        <exception-sorter class-name="org.jboss.jca.adapters.jdbc.extensions.mssql.MSSQLExceptionSorter"/>
+      </validation>
+      <timeout>
+        <blocking-timeout-millis>30000</blocking-timeout-millis>
+        <idle-timeout-minutes>5</idle-timeout-minutes>
+      </timeout>
+    </datasource>
+    <drivers>
+      <driver name="sqlserver" module="com.microsoft.sqlserver">
+        <xa-datasource-class>com.microsoft.sqlserver.jdbc.SQLServerXADataSource</xa-datasource-class>
+      </driver>
+    </drivers>
+  </datasources>
+</subsystem>

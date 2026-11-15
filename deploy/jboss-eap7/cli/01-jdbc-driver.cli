@@ -1,0 +1,7 @@
+# Registers the SQL Server JDBC driver module and driver.
+# Run: jboss-cli --connect --file=01-jdbc-driver.cli --properties=local.properties
+# local.properties supplies driver.jar.path and is not committed.
+batch
+module add --name=com.microsoft.sqlserver --resources=${driver.jar.path} --dependencies=javax.api,javax.transaction.api
+/subsystem=datasources/jdbc-driver=sqlserver:add(driver-name=sqlserver, driver-module-name=com.microsoft.sqlserver, driver-xa-datasource-class-name=com.microsoft.sqlserver.jdbc.SQLServerXADataSource)
+run-batch

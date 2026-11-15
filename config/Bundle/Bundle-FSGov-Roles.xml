@@ -1,0 +1,135 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE sailpoint PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<!--
+  Role model for the governed shares. IT roles map one to one to share
+  groups. Business roles are assigned from HR attributes and require IT roles.
+  No business role requires both write roles, which keeps the role model
+  consistent with the finance and audit SoD policy.
+-->
+<sailpoint>
+  <Bundle name="FSGov Roles" type="organizational">
+    <Attributes>
+      <Map>
+        <entry key="sysDescriptions"><value><Map><entry key="en_US" value="Container for legacy file share roles."/></Map></value></entry>
+      </Map>
+    </Attributes>
+    <Owner><Reference class="sailpoint.object.Identity" name="%%FS_GOVERNANCE_WORKGROUP%%"/></Owner>
+  </Bundle>
+  <Bundle name="FSGov IT Finance Share Read" type="it">
+    <Attributes>
+      <Map>
+        <entry key="sysDescriptions"><value><Map><entry key="en_US" value="Read access to the finance share."/></Map></value></entry>
+      </Map>
+    </Attributes>
+    <Inheritance><Reference class="sailpoint.object.Bundle" name="FSGov Roles"/></Inheritance>
+    <Owner><Reference class="sailpoint.object.Identity" name="%%FS_GOVERNANCE_WORKGROUP%%"/></Owner>
+    <Profiles>
+      <Profile>
+        <ApplicationRef><Reference class="sailpoint.object.Application" name="FSGov Legacy Linux Filesystem"/></ApplicationRef>
+        <Constraints>
+          <Filter operation="CONTAINS_ALL" property="groups">
+            <Value><List><String>fs_fin_ro</String></List></Value>
+          </Filter>
+        </Constraints>
+      </Profile>
+    </Profiles>
+  </Bundle>
+  <Bundle name="FSGov IT Finance Share Write" type="it">
+    <Attributes>
+      <Map>
+        <entry key="sysDescriptions"><value><Map><entry key="en_US" value="Write access to the finance share."/></Map></value></entry>
+      </Map>
+    </Attributes>
+    <Inheritance><Reference class="sailpoint.object.Bundle" name="FSGov Roles"/></Inheritance>
+    <Owner><Reference class="sailpoint.object.Identity" name="%%FS_GOVERNANCE_WORKGROUP%%"/></Owner>
+    <Profiles>
+      <Profile>
+        <ApplicationRef><Reference class="sailpoint.object.Application" name="FSGov Legacy Linux Filesystem"/></ApplicationRef>
+        <Constraints>
+          <Filter operation="CONTAINS_ALL" property="groups">
+            <Value><List><String>fs_fin_rw</String></List></Value>
+          </Filter>
+        </Constraints>
+      </Profile>
+    </Profiles>
+  </Bundle>
+  <Bundle name="FSGov IT Audit Share Read" type="it">
+    <Attributes>
+      <Map>
+        <entry key="sysDescriptions"><value><Map><entry key="en_US" value="Read access to the internal audit share."/></Map></value></entry>
+      </Map>
+    </Attributes>
+    <Inheritance><Reference class="sailpoint.object.Bundle" name="FSGov Roles"/></Inheritance>
+    <Owner><Reference class="sailpoint.object.Identity" name="%%FS_GOVERNANCE_WORKGROUP%%"/></Owner>
+    <Profiles>
+      <Profile>
+        <ApplicationRef><Reference class="sailpoint.object.Application" name="FSGov Legacy Linux Filesystem"/></ApplicationRef>
+        <Constraints>
+          <Filter operation="CONTAINS_ALL" property="groups">
+            <Value><List><String>fs_audit_ro</String></List></Value>
+          </Filter>
+        </Constraints>
+      </Profile>
+    </Profiles>
+  </Bundle>
+  <Bundle name="FSGov IT Audit Share Write" type="it">
+    <Attributes>
+      <Map>
+        <entry key="sysDescriptions"><value><Map><entry key="en_US" value="Write access to the internal audit share."/></Map></value></entry>
+      </Map>
+    </Attributes>
+    <Inheritance><Reference class="sailpoint.object.Bundle" name="FSGov Roles"/></Inheritance>
+    <Owner><Reference class="sailpoint.object.Identity" name="%%FS_GOVERNANCE_WORKGROUP%%"/></Owner>
+    <Profiles>
+      <Profile>
+        <ApplicationRef><Reference class="sailpoint.object.Application" name="FSGov Legacy Linux Filesystem"/></ApplicationRef>
+        <Constraints>
+          <Filter operation="CONTAINS_ALL" property="groups">
+            <Value><List><String>fs_audit_rw</String></List></Value>
+          </Filter>
+        </Constraints>
+      </Profile>
+    </Profiles>
+  </Bundle>
+  <Bundle name="FSGov Finance Analyst" type="business">
+    <Attributes>
+      <Map>
+        <entry key="sysDescriptions"><value><Map><entry key="en_US" value="Finance staff who prepare ledgers and payment files."/></Map></value></entry>
+      </Map>
+    </Attributes>
+    <Inheritance><Reference class="sailpoint.object.Bundle" name="FSGov Roles"/></Inheritance>
+    <Owner><Reference class="sailpoint.object.Identity" name="%%FS_GOVERNANCE_WORKGROUP%%"/></Owner>
+    <Requirements>
+      <Reference class="sailpoint.object.Bundle" name="FSGov IT Finance Share Write"/>
+    </Requirements>
+    <Selector>
+      <IdentitySelector>
+        <MatchExpression and="true">
+          <MatchTerm name="department" value="Finance"/>
+          <MatchTerm name="workerType" value="employee"/>
+        </MatchExpression>
+      </IdentitySelector>
+    </Selector>
+  </Bundle>
+  <Bundle name="FSGov Internal Auditor" type="business">
+    <Attributes>
+      <Map>
+        <entry key="sysDescriptions"><value><Map><entry key="en_US" value="Internal auditors: write audit working papers, read finance records."/></Map></value></entry>
+      </Map>
+    </Attributes>
+    <Inheritance><Reference class="sailpoint.object.Bundle" name="FSGov Roles"/></Inheritance>
+    <Owner><Reference class="sailpoint.object.Identity" name="%%FS_GOVERNANCE_WORKGROUP%%"/></Owner>
+    <Requirements>
+      <Reference class="sailpoint.object.Bundle" name="FSGov IT Audit Share Write"/>
+      <Reference class="sailpoint.object.Bundle" name="FSGov IT Finance Share Read"/>
+    </Requirements>
+    <Selector>
+      <IdentitySelector>
+        <MatchExpression and="true">
+          <MatchTerm name="department" value="Internal Audit"/>
+          <MatchTerm name="workerType" value="employee"/>
+        </MatchExpression>
+      </IdentitySelector>
+    </Selector>
+  </Bundle>
+</sailpoint>

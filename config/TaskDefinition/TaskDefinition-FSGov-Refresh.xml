@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE TaskDefinition PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<TaskDefinition name="FSGov Identity Refresh" resultAction="Rename" subType="task_item_type_identity" type="Identity">
+  <Attributes>
+    <Map>
+      <entry key="filter" value="links.application.name == &quot;FSGov Legacy Linux Filesystem&quot;"/>
+      <entry key="promoteAttributes" value="true"/>
+      <entry key="refreshManagerStatus" value="true"/>
+      <entry key="correlateEntitlements" value="true"/>
+      <entry key="refreshIdentityEntitlements" value="true"/>
+      <entry key="checkPolicies" value="true"/>
+      <entry key="policies" value="FSGov SoD Finance Write vs Audit Write"/>
+      <entry key="processTriggers" value="true"/>
+      <entry key="provision" value="false"/>
+      <entry key="refreshCertifications" value="true"/>
+      <entry key="noCheckPendingWorkflow" value="false"/>
+    </Map>
+  </Attributes>
+  <Description>Refreshes identities that hold legacy file system accounts: attribute promotion, role detection, entitlement correlation and the finance and audit SoD policy. Provisioning is off; changes flow through requests and certifications only.</Description>
+  <Parent>
+    <Reference class="sailpoint.object.TaskDefinition" name="Refresh Identity Cube"/>
+  </Parent>
+</TaskDefinition>

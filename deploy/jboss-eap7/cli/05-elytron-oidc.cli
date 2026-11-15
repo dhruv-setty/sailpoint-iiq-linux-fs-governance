@@ -1,0 +1,12 @@
+# OpenID Connect sign in with Microsoft Entra ID through the elytron-oidc-client
+# subsystem. Check that the extension module exists on the installed patch
+# level first: /extension=org.wildfly.extension.elytron-oidc-client:read-resource
+# Properties: entra.tenant.id, entra.client.id (from local.properties).
+batch
+/extension=org.wildfly.extension.elytron-oidc-client:add()
+/subsystem=elytron-oidc-client:add()
+/subsystem=elytron-oidc-client/provider=entra:add(provider-url="https://login.microsoftonline.com/${entra.tenant.id}/v2.0", ssl-required=ALL, principal-attribute=preferred_username)
+/subsystem=elytron-oidc-client/secure-deployment=identityiq.war:add(provider=entra, client-id="${entra.client.id}")
+/subsystem=elytron-oidc-client/secure-deployment=identityiq.war/credential=secret:add(credential-reference={store=iiq-store, alias=entra-client-secret})
+run-batch
+reload

@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="FSGov-Library">
+  <Description>Shared helpers for the fsgov rules. Referenced through ReferencedRules; never run on its own.</Description>
+  <Source><![CDATA[
+import java.util.ArrayList;
+import java.util.List;
+import sailpoint.object.Application;
+import sailpoint.object.ManagedAttribute;
+import sailpoint.object.QueryOptions;
+import sailpoint.object.Filter;
+
+String FSGOV_FS_APP = "FSGov Legacy Linux Filesystem";
+
+/** True when the group is a governed share group in the entitlement catalog. */
+boolean fsgovIsGovernedGroup(SailPointContext ctx, String groupName) {
+    if (groupName == null) {
+        return false;
+    }
+    Application app = ctx.getObjectByName(Application.class, FSGOV_FS_APP);
+    if (app == null) {
+        return false;
+    }
+    QueryOptions qo = new QueryOptions();
+    qo.addFilter(Filter.eq("application.id", app.getId()));
+    qo.addFilter(Filter.eq("attribute", "groups"));
+    qo.addFilter(Filter.eq("value", groupName));
+    return ctx.countObjects(ManagedAttribute.class, qo) > 0;
+}
+
+/** Normalises a value that may be a String or a List into a List of Strings. */
+List fsgovAsList(Object value) {
+    List out = new ArrayList();
+    if (value instanceof List) {
+        for (Object o : (List) value) {
+            if (o != null) {
+                out.add(o.toString());
+            }
+        }
+    } else if (value != null) {
+        out.add(value.toString());
+    }
+    return out;
+}
+]]></Source>
+</Rule>

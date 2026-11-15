@@ -1,0 +1,99 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="FSGov-BeforeProvisioning" type="BeforeProvisioning">
+  <Description>
+    Prepares the plan for the legacy file system connector:
+    1. Account Delete becomes removal of every governed group. Legacy hosts keep
+       the POSIX account so file ownership by uid stays resolvable for audit.
+    2. Group values outside the entitlement catalog are dropped and recorded.
+    3. Remove requests are ordered before Add requests within each account
+       request, so the connector receives revocations first.
+  </Description>
+  <Signature>
+    <Inputs>
+      <Argument name="log"/>
+      <Argument name="context"/>
+      <Argument name="plan"><Description>ProvisioningPlan about to be sent to the connector.</Description></Argument>
+      <Argument name="application"/>
+    </Inputs>
+  </Signature>
+  <ReferencedRules>
+    <Reference class="sailpoint.object.Rule" name="FSGov-Library"/>
+  </ReferencedRules>
+  <Source><![CDATA[
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import sailpoint.object.Identity;
+import sailpoint.object.Link;
+import sailpoint.object.ProvisioningPlan;
+import sailpoint.object.ProvisioningPlan.AccountRequest;
+import sailpoint.object.ProvisioningPlan.AttributeRequest;
+import sailpoint.object.ProvisioningPlan.Operation;
+import sailpoint.api.IdentityService;
+
+if (plan == null || plan.getAccountRequests() == null) {
+    return;
+}
+
+for (Iterator it = plan.getAccountRequests().iterator(); it.hasNext();) {
+    AccountRequest req = (AccountRequest) it.next();
+    if (!application.getName().equals(req.getApplication())) {
+        continue;
+    }
+
+    if (AccountRequest.Operation.Delete.equals(req.getOperation())) {
+        req.setOperation(AccountRequest.Operation.Modify);
+        Identity identity = plan.getIdentity();
+        if (identity != null) {
+            IdentityService svc = new IdentityService(context);
+            Link link = svc.getLink(identity, application, null, req.getNativeIdentity());
+            if (link != null) {
+                List current = fsgovAsList(link.getAttribute("groups"));
+                for (Iterator g = current.iterator(); g.hasNext();) {
+                    String group = (String) g.next();
+                    if (fsgovIsGovernedGroup(context, group)) {
+                        req.add(new AttributeRequest("groups", Operation.Remove, group));
+                    }
+                }
+            }
+        }
+        log.info("fsgov: converted Delete of " + req.getNativeIdentity() + " to removal of governed groups");
+    }
+
+    List attrs = req.getAttributeRequests();
+    if (attrs == null) {
+        continue;
+    }
+    List removes = new ArrayList();
+    List others = new ArrayList();
+    for (Iterator a = attrs.iterator(); a.hasNext();) {
+        AttributeRequest ar = (AttributeRequest) a.next();
+        if ("groups".equals(ar.getName())) {
+            List values = fsgovAsList(ar.getValue());
+            List kept = new ArrayList();
+            for (Iterator v = values.iterator(); v.hasNext();) {
+                String value = (String) v.next();
+                if (fsgovIsGovernedGroup(context, value)) {
+                    kept.add(value);
+                } else {
+                    log.warn("fsgov: dropped ungoverned group " + value + " for " + req.getNativeIdentity());
+                }
+            }
+            if (kept.isEmpty()) {
+                continue;
+            }
+            ar.setValue(kept.size() == 1 ? (Object) kept.get(0) : (Object) kept);
+        }
+        if (Operation.Remove.equals(ar.getOperation())) {
+            removes.add(ar);
+        } else {
+            others.add(ar);
+        }
+    }
+    List ordered = new ArrayList(removes);
+    ordered.addAll(others);
+    req.setAttributeRequests(ordered);
+}
+]]></Source>
+</Rule>

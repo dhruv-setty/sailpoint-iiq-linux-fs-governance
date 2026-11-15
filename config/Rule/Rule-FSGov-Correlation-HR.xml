@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="FSGov-Correlation-HR" type="Correlation">
+  <Description>Correlates HR accounts to identities on the immutable employeeId.</Description>
+  <Signature returnType="Map">
+    <Inputs>
+      <Argument name="log"/>
+      <Argument name="context"/>
+      <Argument name="environment"/>
+      <Argument name="application"/>
+      <Argument name="account"><Description>ResourceObject being aggregated.</Description></Argument>
+      <Argument name="link"/>
+    </Inputs>
+    <Returns>
+      <Argument name="identityName"/>
+      <Argument name="identity"/>
+      <Argument name="identityAttributeName"/>
+      <Argument name="identityAttributeValue"/>
+    </Returns>
+  </Signature>
+  <Source><![CDATA[
+import java.util.HashMap;
+import java.util.Map;
+
+Map result = new HashMap();
+String id = account.getStringAttribute("employeeId");
+if (id != null && id.length() > 0) {
+    result.put("identityAttributeName", "employeeId");
+    result.put("identityAttributeValue", id.toUpperCase());
+}
+return result;
+]]></Source>
+</Rule>

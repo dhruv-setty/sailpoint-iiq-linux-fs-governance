@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Maven verify (Java 17)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      # Default profile only. The iiq profile needs the licensed identityiq.jar
+      # and is never activated in CI. The config validation module parses every
+      # config/*.xml and deploy/**/*.xml and enforces repository policy.
+      - run: mvn -B -ntp verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-and-coverage-reports
+          path: |
+            src/*/target/surefire-reports/
+            src/fsgov-core/target/site/jacoco/
+          if-no-files-found: ignore
