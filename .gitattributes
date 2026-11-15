@@ -6,6 +6,13 @@
 *.bsh         linguist-detectable=false
 *.md          linguist-documentation
 docs/**       linguist-documentation
+# Implementation languages: Java (Maven modules) and C# (src/OntapNfs).
+*.java        linguist-language=Java
+*.cs          linguist-language=C#
+*.csproj      linguist-detectable=false
+*.props       linguist-detectable=false
+*.sln         linguist-detectable=false
+*.sln         text eol=lf
 
 * text=auto eol=lf
 *.jar binary

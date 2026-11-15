@@ -31,9 +31,10 @@ src/
   fsgov-core/              Pure Java model, change planner, evidence (JUnit 5)
   fsgov-config-validation/ Build checks over config/ and deploy/
   fsgov-iiq-adapter/       IdentityIQ custom connector (Maven profile iiq)
+  OntapNfs/                .NET 8: ONTAP NFSv3 file access, REST orchestration, WAR deploy
 deploy/jboss-eap7/         JBoss EAP 7.4 notes, CLI scripts, module and snippets
 docs/                      Architecture, provisioning, certification, cloud migration,
-                           runbook, security policy
+                           ONTAP NFSv3, runbook, security policy
 ```
 
 ## Build
@@ -56,6 +57,34 @@ The IdentityIQ adapter needs the licensed `identityiq.jar`:
 $ mvn install:install-file -Dfile=identityiq.jar -DgroupId=sailpoint -DartifactId=identityiq -Dversion=8.4 -Dpackaging=jar
 $ mvn -B -Piiq verify
 ```
+
+## ONTAP NFSv3 module (C#)
+
+`src/OntapNfs` is a .NET 8 solution for NetApp ONTAP storage published over
+NFSv3 to the application hosts this project governs. It runs beside
+IdentityIQ as operations tooling and shares no code with the Java modules.
+
+* `OntapNfs.Core`: System.IO access to a mounted share (`/mnt/ontap/vol1`,
+  `N:\` or a UNC path) with explicit `FileShare` modes, retry with backoff on
+  stale handles and lock contention, atomic write by temporary file and
+  rename, and a path guard against traversal. A model of ONTAP export policy
+  rules (clientmatch, rorule, rwrule, superuser, anon, root squash) and a
+  validator that checks a service account maps to a valid UID and GID the
+  export allows.
+* `OntapNfs.Ontap`: typed ONTAP REST client (volumes, export policies and
+  rules, unix users and groups, NFS services, job polling) with idempotent
+  ensure operations. Credentials come from `ONTAP_BASE_URL`,
+  `ONTAP_USERNAME` and `ONTAP_PASSWORD`.
+* `OntapNfs.Deploy`: atomic WAR deployment to Tomcat, WildFly (marker files)
+  and Jetty deployment directories on the share.
+
+```text
+dotnet test src/OntapNfs/OntapNfs.sln -c Release
+```
+
+Design, the ONTAP native and SAN re-export paths, UID and GID mapping,
+locking and the link to the IdentityIQ provisioning model are in
+[docs/ontap-nfsv3.md](docs/ontap-nfsv3.md).
 
 ## How a grant becomes a change on disk
 
@@ -81,6 +110,7 @@ command text is executed anywhere in this project.
 * [Legacy file system provisioning design](docs/legacy-filesystem-provisioning.md)
 * [Access certification design](docs/access-certification.md)
 * [Cloud migration notes](docs/cloud-migration.md)
+* [ONTAP NFSv3 module](docs/ontap-nfsv3.md)
 * [Runbook](docs/runbook.md)
 * [JBoss EAP 7 deployment](deploy/jboss-eap7/README.md)
 * [Security policy](docs/SECURITY.md)
@@ -88,6 +118,10 @@ command text is executed anywhere in this project.
 ## Verification status
 
 * `fsgov-core` and the configuration checks run in CI on every push.
+* The ONTAP NFSv3 module's unit tests run in CI in a separate `dotnet` job.
+  The REST client is tested against a fake HTTP handler and file access
+  against local temporary directories; it has not run against a real ONTAP
+  cluster, a real NFSv3 mount or a running application server.
 * The IdentityIQ artifacts are checked for well formedness and internal
   consistency only. `sailpoint.dtd` is not public, so they have not been
   validated against it, and none of them has been imported into a running

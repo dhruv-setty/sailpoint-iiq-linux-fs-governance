@@ -31,3 +31,24 @@ jobs:
             src/*/target/surefire-reports/
             src/fsgov-core/target/site/jacoco/
           if-no-files-found: ignore
+
+  dotnet:
+    name: dotnet test (.NET 8)
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_NOLOGO: 'true'
+      DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      # Unit tests only: the ONTAP client runs against a fake HTTP handler and
+      # file access against temporary directories. No cluster or NFS mount.
+      - run: dotnet test src/OntapNfs/OntapNfs.sln -c Release --logger trx --collect "XPlat Code Coverage" --results-directory src/OntapNfs/TestResults
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dotnet-test-and-coverage
+          path: src/OntapNfs/TestResults/
+          if-no-files-found: ignore
