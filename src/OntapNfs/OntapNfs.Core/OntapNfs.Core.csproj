@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>OntapNfs.Core</RootNamespace>
+    <Description>NFSv3 share access over a mounted path, POSIX identity and ONTAP export policy evaluation.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OntapNfs.Tests" />
+  </ItemGroup>
+</Project>

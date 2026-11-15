@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>OntapNfs.Ontap</RootNamespace>
+    <Description>Typed client for the ONTAP REST API and idempotent ensure operations for NFS exports and UNIX identities.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OntapNfs.Core\OntapNfs.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OntapNfs.Tests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>OntapNfs.Deploy</RootNamespace>
+    <Description>Atomic WAR deployment onto an NFS backed deployment directory for Tomcat, WildFly and Jetty.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OntapNfs.Core\OntapNfs.Core.csproj" />
+  </ItemGroup>
+</Project>
