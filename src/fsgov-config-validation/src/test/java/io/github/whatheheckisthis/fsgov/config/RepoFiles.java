@@ -34,13 +34,17 @@ final class RepoFiles {
         }
     }
 
+    /** Root of the .NET module, the only place C# sources may live. */
+    static final String DOTNET_MODULE = "src/OntapNfs/";
+
     /** Every tracked-looking file, excluding build output and VCS metadata. */
     static List<Path> all() {
         try (Stream<Path> s = Files.walk(root())) {
             return s.filter(Files::isRegularFile)
                     .filter(p -> {
                         String rel = root().relativize(p).toString().replace('\\', '/');
-                        return !rel.startsWith(".git/") && !rel.contains("/target/") && !rel.startsWith("target/");
+                        return !rel.startsWith(".git/") && !rel.contains("/target/") && !rel.startsWith("target/")
+                                && !(rel.startsWith(DOTNET_MODULE) && (rel.contains("/bin/") || rel.contains("/obj/") || rel.contains("/TestResults/")));
                     })
                     .sorted()
                     .toList();
