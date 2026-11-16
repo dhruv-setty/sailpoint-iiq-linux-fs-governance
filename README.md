@@ -1,14 +1,69 @@
-# 
-SailPoint IdentityIQ project for governing legacy Linux file systems: POSIX
-and ACL provisioning, access certification, and JBoss EAP 7 deployment.
+# Intent-Auditable Trust Object V3
 
-Legacy file servers (ext3, ext4, XFS, published over NFSv3) hold regulated
-records but express access in owner, group and mode bits, POSIX.1e ACLs and
-export options that drift through manual change. This project brings that
-access under IdentityIQ: requests with approval, provisioning through an
-ordered and idempotent change plan, separation of duties between finance and
-audit write access, targeted and manager certifications, and evidence that a
-revocation actually took effect on disk.
+This repository holds IdentityIQ Legacy Filesystem Governance, a SailPoint IdentityIQ project for governing legacy Linux file systems: POSIX and ACL provisioning, access certification, and JBoss EAP 7 deployment. Legacy file servers (ext3, ext4, XFS, published over NFSv3) hold regulated records but express access in owner, group and mode bits, POSIX.1e ACLs and export options that drift through manual change. This project brings that access under IdentityIQ: requests with approval, provisioning through an ordered and idempotent change plan, separation of duties between finance and audit write access, targeted and manager certifications, and evidence that a revocation took effect on disk. It is not a tested IdentityIQ deployment: the configuration has not been imported into a running IdentityIQ instance (see Verification).
+
+The key words MUST, MUST NOT, SHALL, SHOULD and MAY in this document are to be interpreted as described in BCP 14 (RFC 2119 and RFC 8174).
+
+## Scope
+
+In scope:
+
+- IdentityIQ XML artifacts under `config/` in the SSB layout, with `%%TOKEN%%` placeholders.
+- `fsgov-core`, a Java model, change planner and evidence library with JUnit 5 tests.
+- `fsgov-config-validation`, build checks over `config/` and `deploy/`.
+- `fsgov-iiq-adapter`, an IdentityIQ custom connector built only with the Maven profile `iiq`.
+- JBoss EAP 7.4 notes, CLI scripts, module and snippets under `deploy/jboss-eap7/`.
+
+Out of scope:
+
+- The licensed `identityiq.jar` and `sailpoint.dtd`, which are not distributed with this repository.
+- Executing command text: no command text is executed anywhere in this project.
+- Jakarta EE 10 application servers (JBoss EAP 8, WildFly 27 and later); see [JBoss EAP 7 deployment](deploy/jboss-eap7/README.md).
+
+## Requirements
+
+- A JDK 17 or later and Maven MUST be available to build.
+- The IdentityIQ adapter MUST be built against the licensed `identityiq.jar` (version 8.4 in the install command below).
+
+## Build
+
+```console
+$ mvn -B verify
+```
+
+The default build runs the core unit tests with a coverage gate and parses every XML file under `config/` and `deploy/`. It checks that each IdentityIQ artifact declares the `sailpoint.dtd` DOCTYPE, that every object reference and rule name resolves, that every `%%TOKEN%%` has a value, and that the repository contains no script sources.
+
+The IdentityIQ adapter needs the licensed `identityiq.jar`:
+
+```console
+$ mvn install:install-file -Dfile=identityiq.jar -DgroupId=sailpoint -DartifactId=identityiq -Dversion=8.4 -Dpackaging=jar
+$ mvn -B -Piiq verify
+```
+
+## Usage
+
+The following shows how a grant becomes a change on disk:
+
+```java
+ChangePlan plan = new ChangePlanner(catalog).plan(snapshot,
+        List.of(ProvisioningRequest.addGroup("alice", "fs_fin_rw")));
+plan.describe();
+// groupadd -g 4101 fs_fin_rw
+// setfacl -n -m default:group:fs_fin_rw:rwx /srv/finance
+// setfacl -n -m group:fs_fin_rw:rwx /srv/finance
+// setfacl -n -m mask::rwx /srv/finance
+// setfacl -n -m default:mask::rwx /srv/finance
+// gpasswd -a alice fs_fin_rw
+```
+
+The lines above are a display form for reviewers. The connector queues the structured steps (`ChangePlanCodec`), and the host executor applies them; no command text is executed anywhere in this project.
+
+Deployment, import order and operation are described in the [Runbook](docs/runbook.md).
+
+## Configuration
+
+- `sandbox.target.properties` holds the token values for the sandbox environment. Its values are placeholders; credentials MUST NOT be placed in this file.
+- `config/` contains the IdentityIQ artifacts, grouped as shown in Repository layout.
 
 ## Repository layout
 
@@ -35,67 +90,28 @@ docs/                      Architecture, provisioning, certification, cloud migr
                            runbook, security policy
 ```
 
-## Build
-
-Requires a JDK 17 or later and Maven.
-
-```console
-$ mvn -B verify
-```
-
-The default build runs the core unit tests with a coverage gate and parses
-every XML file under `config/` and `deploy/`, checks that each IdentityIQ
-artifact declares the `sailpoint.dtd` DOCTYPE, that every object reference and
-rule name resolves, that every `%%TOKEN%%` has a value, and that the
-repository contains no script sources.
-
-The IdentityIQ adapter needs the licensed `identityiq.jar`:
-
-```console
-$ mvn install:install-file -Dfile=identityiq.jar -DgroupId=sailpoint -DartifactId=identityiq -Dversion=8.4 -Dpackaging=jar
-$ mvn -B -Piiq verify
-```
-
-## How a grant becomes a change on disk
-
-```java
-ChangePlan plan = new ChangePlanner(catalog).plan(snapshot,
-        List.of(ProvisioningRequest.addGroup("alice", "fs_fin_rw")));
-plan.describe();
-// groupadd -g 4101 fs_fin_rw
-// setfacl -n -m default:group:fs_fin_rw:rwx /srv/finance
-// setfacl -n -m group:fs_fin_rw:rwx /srv/finance
-// setfacl -n -m mask::rwx /srv/finance
-// setfacl -n -m default:mask::rwx /srv/finance
-// gpasswd -a alice fs_fin_rw
-```
-
-The lines above are a display form for reviewers. The connector queues the
-structured steps (`ChangePlanCodec`), and the host executor applies them; no
-command text is executed anywhere in this project.
-
 ## Documentation
 
-* [Architecture](docs/architecture.md)
-* [Legacy file system provisioning design](docs/legacy-filesystem-provisioning.md)
-* [Access certification design](docs/access-certification.md)
-* [Cloud migration notes](docs/cloud-migration.md)
-* [Runbook](docs/runbook.md)
-* [JBoss EAP 7 deployment](deploy/jboss-eap7/README.md)
-* [Security policy](docs/SECURITY.md)
+- [Architecture](docs/architecture.md)
+- [Legacy file system provisioning design](docs/legacy-filesystem-provisioning.md)
+- [Access certification design](docs/access-certification.md)
+- [Cloud migration notes](docs/cloud-migration.md)
+- [Runbook](docs/runbook.md)
+- [JBoss EAP 7 deployment](deploy/jboss-eap7/README.md)
+- [Security policy](docs/SECURITY.md)
 
-## Verification status
+## Verification
 
-* `fsgov-core` and the configuration checks run in CI on every push.
-* The IdentityIQ artifacts are checked for well formedness and internal
-  consistency only. `sailpoint.dtd` is not public, so they have not been
-  validated against it, and none of them has been imported into a running
-  IdentityIQ instance.
-* The adapter has not been compiled against `identityiq.jar` in CI.
-* The JBoss CLI scripts have not been run against a server in CI.
+- `fsgov-core` and the configuration checks run in CI (Maven verify on Java 17) on each push to `main` and on each pull request.
+- The IdentityIQ artifacts are checked for well formedness and internal consistency only. `sailpoint.dtd` is not public, so they have not been validated against it, and none of them has been imported into a running IdentityIQ instance.
+- The adapter has not been compiled against `identityiq.jar` in CI.
+- The JBoss CLI scripts have not been run against a server in CI.
 
-Treat the configuration as a reviewed starting point for an implementation,
-to be imported and tested in a sandbox before any higher environment.
+The configuration SHOULD be treated as a reviewed starting point for an implementation. It MUST be imported and tested in a sandbox before any higher environment.
+
+## Security
+
+Security reporting and commit signature verification are described in [SECURITY.md](SECURITY.md); the maintainer signing key is published in [KEYS.asc](KEYS.asc).
 
 ## License
 
