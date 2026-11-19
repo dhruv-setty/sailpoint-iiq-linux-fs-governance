@@ -1,0 +1,21 @@
+$ java -cp fsgov-core.jar Capture.java certify inv-after after-remediation
+
+== AccessDiffer: evidence bundle 'after-remediation' (3 records)
+  ACCOUNT PATH          DESIRED  ACTUAL   STATUS    SOURCE
+  carol  /srv/audit    r-x      r-x      MATCH     group:fs_audit_ro:r-x masked by r-x
+  alice  /srv/finance  rwx      rwx      MATCH     group:fs_fin_rw:rwx masked by rwx
+  bob    /srv/finance  r-x      r-x      MATCH     group:fs_fin_ro:r-x masked by rwx
+  sha256 304ecbff5eab09ae22b2197c42cf16b07b894b185221e1457cee9251b4baacd0
+
+== OrphanDetector: 2 findings
+  DANGLING_ACL_USER    /srv/audit    7777       user:7777:r-x
+  NO_ROOT_SQUASH       /srv/finance  backup01   remote root acts as local root on this export
+
+== ChangePlanner: same requests against this snapshot: 0 steps, noOp=true
+  satisfied: group:fs_fin_rw:rwx already present on /srv/finance
+  satisfied: default:group:fs_fin_rw:rwx already present on /srv/finance
+  satisfied: alice is already a member of fs_fin_rw
+  satisfied: group:fs_audit_ro:r-x already present on /srv/audit
+  satisfied: default:group:fs_audit_ro:r-x already present on /srv/audit
+  satisfied: carol is already a member of fs_audit_ro
+  satisfied: carol holds no direct entry on /srv/finance

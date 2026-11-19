@@ -1,0 +1,49 @@
+$ sudo setfacl -n -x user:carol /srv/finance
+$ sudo groupadd -g 4101 fs_fin_rw
+$ sudo setfacl -n -m default:group:fs_audit_ro:r-x /srv/audit
+$ sudo setfacl -n -m group:fs_audit_ro:r-x /srv/audit
+$ sudo setfacl -n -m default:group:fs_fin_rw:rwx /srv/finance
+$ sudo setfacl -n -m group:fs_fin_rw:rwx /srv/finance
+$ sudo setfacl -n -m default:mask::r-x /srv/audit
+$ sudo setfacl -n -m default:mask::rwx /srv/finance
+$ sudo gpasswd -a carol fs_audit_ro
+Adding user carol to group fs_audit_ro
+$ sudo gpasswd -a alice fs_fin_rw
+Adding user alice to group fs_fin_rw
+$ getent group fs_fin_rw fs_audit_ro fs_fin_ro
+fs_fin_rw:x:4101:alice
+fs_audit_ro:x:4200:carol
+fs_fin_ro:x:4100:bob
+$ sudo getfacl -p /srv/finance /srv/audit
+# file: /srv/finance
+# owner: finsvc
+# group: finsvc
+# flags: -s-
+user::rwx
+group::r-x
+group:fs_fin_ro:r-x
+group:fs_fin_rw:rwx
+mask::rwx
+other::---
+default:user::rwx
+default:group::r-x
+default:group:fs_fin_ro:r-x
+default:group:fs_fin_rw:rwx
+default:mask::rwx
+default:other::---
+
+# file: /srv/audit
+# owner: root
+# group: root
+user::rwx
+user:7777:r-x
+group::r-x
+group:fs_audit_ro:r-x
+mask::r-x
+other::---
+default:user::rwx
+default:group::r-x
+default:group:fs_audit_ro:r-x
+default:mask::r-x
+default:other::---
+

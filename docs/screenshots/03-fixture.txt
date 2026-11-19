@@ -1,0 +1,45 @@
+$ sudo groupadd -g 2990 finsvc && sudo useradd -M -u 2990 -g 2990 finsvc
+$ for u in alice:2001 bob:2002 carol:2003; do sudo groupadd -g ${u#*:} ${u%:*}; sudo useradd -M -u ${u#*:} -g ${u#*:} ${u%:*}; done
+$ sudo groupadd -g 4100 fs_fin_ro && sudo groupadd -g 4200 fs_audit_ro && sudo gpasswd -a bob fs_fin_ro
+Adding user bob to group fs_fin_ro
+$ sudo mkdir -p /srv/finance /srv/audit /srv/scratch
+$ sudo chown finsvc:finsvc /srv/finance && sudo chmod 2750 /srv/finance && sudo chmod 0750 /srv/audit && sudo chmod 1777 /srv/scratch
+$ sudo setfacl -m group:fs_fin_ro:r-x,default:group:fs_fin_ro:r-x /srv/finance
+$ sudo setfacl -m user:carol:rwx /srv/finance   # drift: direct grant outside IdentityIQ
+$ sudo setfacl -m user:7777:r-x /srv/audit      # drift: entry for a deleted uid
+$ findmnt -no SOURCE,FSTYPE -T /srv
+/dev/mapper/cow-root ext4
+$ sudo getfacl -p /srv/finance /srv/audit /srv/scratch
+# file: /srv/finance
+# owner: finsvc
+# group: finsvc
+# flags: -s-
+user::rwx
+user:carol:rwx
+group::r-x
+group:fs_fin_ro:r-x
+mask::rwx
+other::---
+default:user::rwx
+default:group::r-x
+default:group:fs_fin_ro:r-x
+default:mask::r-x
+default:other::---
+
+# file: /srv/audit
+# owner: root
+# group: root
+user::rwx
+user:7777:r-x
+group::r-x
+mask::r-x
+other::---
+
+# file: /srv/scratch
+# owner: root
+# group: root
+# flags: --t
+user::rwx
+group::rwx
+other::rwx
+

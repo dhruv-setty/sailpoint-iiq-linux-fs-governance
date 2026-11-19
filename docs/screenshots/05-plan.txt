@@ -1,0 +1,35 @@
+$ java -cp fsgov-core.jar Capture.java plan inv-before
+
+== ChangePlanner: requests
+  ADD alice groups=fs_fin_rw
+  ADD carol groups=fs_audit_ro
+  REMOVE carol directPermissions=/srv/finance:---
+
+== ChangePlanner: 10 ordered steps (display form)
+  REVOKE_ACL         setfacl -n -x user:carol /srv/finance
+  CREATE_GROUP       groupadd -g 4101 fs_fin_rw
+  GRANT_ACL          setfacl -n -m default:group:fs_audit_ro:r-x /srv/audit
+  GRANT_ACL          setfacl -n -m group:fs_audit_ro:r-x /srv/audit
+  GRANT_ACL          setfacl -n -m default:group:fs_fin_rw:rwx /srv/finance
+  GRANT_ACL          setfacl -n -m group:fs_fin_rw:rwx /srv/finance
+  SET_MASK           setfacl -n -m default:mask::r-x /srv/audit
+  SET_MASK           setfacl -n -m default:mask::rwx /srv/finance
+  GRANT_MEMBERSHIP   gpasswd -a carol fs_audit_ro
+  GRANT_MEMBERSHIP   gpasswd -a alice fs_fin_rw
+
+== Warnings (0)
+
+== Already satisfied (0)
+
+== ChangePlanCodec: encoded 10 steps, decoded 10
+#fsgov-plan	v1
+REMOVE_ACL	/srv/finance	USER	carol	false
+CREATE_GROUP	fs_fin_rw	4101
+SET_ACL	/srv/audit	default:group:fs_audit_ro:r-x
+SET_ACL	/srv/audit	group:fs_audit_ro:r-x
+SET_ACL	/srv/finance	default:group:fs_fin_rw:rwx
+SET_ACL	/srv/finance	group:fs_fin_rw:rwx
+SET_MASK	/srv/audit	true	r-x
+SET_MASK	/srv/finance	true	rwx
+ADD_MEMBER	carol	fs_audit_ro
+ADD_MEMBER	alice	fs_fin_rw

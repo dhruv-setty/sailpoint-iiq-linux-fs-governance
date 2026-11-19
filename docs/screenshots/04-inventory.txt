@@ -1,0 +1,58 @@
+$ cat /tmp/cap/inv-before/paths.tsv
+/srv/finance	2990	2990	2770	EXT4	true
+/srv/audit	0	0	0750	EXT4	true
+/srv/scratch	0	0	1777	EXT4	true
+$ cat /tmp/cap/inv-before/exports
+# /etc/exports fixture (exports(5) syntax), not loaded into the kernel
+/srv/finance 10.20.0.0/16(rw,sync,root_squash) backup01(ro,no_root_squash)
+/srv/audit -ro,sync 10.20.8.0/24 \
+    auditor01(rw,root_squash)
+$ java -cp fsgov-core.jar Capture.java inventory inv-before
+
+== GetfaclParser + paths.tsv: governed paths read from 3 getfacl blocks
+/srv/audit     uid=0     gid=0     mode=0750 fs=EXT4 acl=on
+    user::rwx
+    user:7777:r-x
+    group::r-x
+    mask::r-x
+    other::---
+/srv/finance   uid=2990  gid=2990  mode=2770 fs=EXT4 acl=on
+    user::rwx
+    user:carol:rwx
+    group::r-x
+    group:fs_fin_ro:r-x
+    mask::rwx
+    other::---
+    default:user::rwx
+    default:group::r-x
+    default:group:fs_fin_ro:r-x
+    default:mask::r-x
+    default:other::---
+/srv/scratch   uid=0     gid=0     mode=1777 fs=EXT4 acl=on
+    user::rwx
+    group::rwx
+    other::rwx
+
+== ExportsParser: exports(5) rules (2 exports)
+/srv/finance   10.20.0.0/16    rw=true  root_squash=true  all_squash=false anon=65534:65534 sec=sys
+/srv/finance   backup01        rw=false root_squash=false all_squash=false anon=65534:65534 sec=sys
+/srv/audit     10.20.8.0/24    rw=false root_squash=true  all_squash=false anon=65534:65534 sec=sys
+/srv/audit     auditor01       rw=true  root_squash=true  all_squash=false anon=65534:65534 sec=sys
+
+== AccessEvaluator: effective access, local and over NFSv3 from client backup01
+root   /srv/finance  local=rwx (superuser)
+                     nfs=r-x (superuser, write removed by ro export)
+root   /srv/audit    local=rwx (superuser)
+                     nfs=--- (not exported to backup01)
+alice  /srv/finance  local=--- (other::)
+                     nfs=--- (other::)
+alice  /srv/audit    local=--- (other::)
+                     nfs=--- (not exported to backup01)
+bob    /srv/finance  local=r-x (group:fs_fin_ro:r-x masked by rwx)
+                     nfs=r-x (group:fs_fin_ro:r-x masked by rwx)
+bob    /srv/audit    local=--- (other::)
+                     nfs=--- (not exported to backup01)
+carol  /srv/finance  local=rwx (user:carol:rwx masked by rwx)
+                     nfs=r-x (user:carol:rwx masked by rwx, write removed by ro export)
+carol  /srv/audit    local=--- (other::)
+                     nfs=--- (not exported to backup01)

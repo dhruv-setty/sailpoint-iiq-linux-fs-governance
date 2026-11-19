@@ -1,0 +1,14 @@
+$ java -cp fsgov-core.jar Capture.java certify inv-before before-remediation
+
+== AccessDiffer: evidence bundle 'before-remediation' (4 records)
+  ACCOUNT PATH          DESIRED  ACTUAL   STATUS    SOURCE
+  carol  /srv/audit    r-x      ---      MISSING   other::
+  alice  /srv/finance  rwx      ---      MISSING   other::
+  bob    /srv/finance  r-x      r-x      MATCH     group:fs_fin_ro:r-x masked by rwx
+  carol  /srv/finance  ---      rwx      EXCESS    user:carol:rwx masked by rwx
+  sha256 1427d9ce4a5e52195303d5dd1cc6b43f42ab8403bc3587f9805b467ba2b80ccc
+
+== OrphanDetector: 3 findings
+  DANGLING_ACL_USER    /srv/audit    7777       user:7777:r-x
+  EMPTY_GOVERNED_GROUP /srv/audit    fs_audit_ro no effective members
+  NO_ROOT_SQUASH       /srv/finance  backup01   remote root acts as local root on this export

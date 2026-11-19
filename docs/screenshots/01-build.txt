@@ -1,0 +1,28 @@
+$ mvn -B -ntp verify   (summary lines from the build log)
+--- surefire:3.5.2:test (default-test) @ fsgov-core ---
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0  parse.ExportsParserTest
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0  parse.GetfaclParserTest
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0  evidence.OrphanDetectorTest
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0  evidence.AccessDifferTest
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0  plan.PlanApplierTest
+Tests run: 16, Failures: 0, Errors: 0, Skipped: 0  plan.ChangePlannerTest
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0  plan.ChangePlanCodecTest
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0  model.PathEntryTest
+Tests run: 7, Failures: 0, Errors: 0, Skipped: 0  model.AclTest
+Tests run: 11, Failures: 0, Errors: 0, Skipped: 0  model.PermissionSetTest
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0  model.NfsClientRuleTest
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 0  model.AccessEvaluatorTest
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0  model.GroupResolverTest
+Tests run: 9, Failures: 0, Errors: 0, Skipped: 0  model.PosixModeTest
+Tests run: 78, Failures: 0, Errors: 0, Skipped: 0
+--- surefire:3.5.2:test (default-test) @ fsgov-config-validation ---
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0  config.IiqReferenceIntegrityTest
+Tests run: 30, Failures: 0, Errors: 0, Skipped: 0  config.IiqConfigWellFormedTest
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0  config.RepositoryPolicyTest
+Tests run: 37, Failures: 0, Errors: 0, Skipped: 0
+Reactor Summary for IdentityIQ Legacy Filesystem Governance 1.0.0-SNAPSHOT:
+IdentityIQ Legacy Filesystem Governance ............ SUCCESS [  0.002 s]
+fsgov-core ......................................... SUCCESS [  6.378 s]
+fsgov-config-validation ............................ SUCCESS [  1.092 s]
+BUILD SUCCESS
+Total time:  9.173 s

@@ -60,7 +60,8 @@ class RepositoryPolicyTest {
         List<String> problems = new ArrayList<>();
         for (Path p : RepoFiles.all()) {
             String name = p.getFileName().toString();
-            if (name.endsWith(".jar") || name.endsWith(".class")) {
+            // Binary files are not read as text; PNG figures live in docs/screenshots/.
+            if (name.endsWith(".jar") || name.endsWith(".class") || name.endsWith(".png")) {
                 continue;
             }
             if (name.equals("local.properties") || name.endsWith(".cs") || name.endsWith(".keystore") || name.endsWith(".jks")) {
