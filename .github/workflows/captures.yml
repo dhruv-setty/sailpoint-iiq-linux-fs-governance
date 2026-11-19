@@ -1,0 +1,344 @@
+name: captures
+
+# Produces the screenshots in docs/screenshots/ from real runs on this runner:
+# the Maven build and unit tests, the JaCoCo report, and fsgov-core run against
+# a POSIX ACL fixture created on the runner's own ext4 file system. Nothing here
+# needs IdentityIQ or JBoss EAP, and neither is installed. The capture driver is
+# Java and is written to /tmp at run time, so it never enters the repository.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/captures.yml"
+      - "src/fsgov-core/**"
+      - "pom.xml"
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    name: Capture screenshots (Xvfb)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Install capture tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xterm xdotool imagemagick acl fonts-dejavu-core
+      - name: Write capture driver
+        run: |
+          mkdir -p /tmp/cap
+          cat > /tmp/cap/Capture.java <<'JAVA'
+          import io.github.whatheheckisthis.fsgov.evidence.AccessDiffer;
+          import io.github.whatheheckisthis.fsgov.evidence.DesiredAccess;
+          import io.github.whatheheckisthis.fsgov.evidence.EvidenceBundle;
+          import io.github.whatheheckisthis.fsgov.evidence.EvidenceRecord;
+          import io.github.whatheheckisthis.fsgov.evidence.Finding;
+          import io.github.whatheheckisthis.fsgov.evidence.OrphanDetector;
+          import io.github.whatheheckisthis.fsgov.model.Account;
+          import io.github.whatheheckisthis.fsgov.model.AccessContext;
+          import io.github.whatheheckisthis.fsgov.model.AccessEvaluator;
+          import io.github.whatheheckisthis.fsgov.model.EntitlementCatalog;
+          import io.github.whatheheckisthis.fsgov.model.FilesystemSnapshot;
+          import io.github.whatheheckisthis.fsgov.model.FilesystemType;
+          import io.github.whatheheckisthis.fsgov.model.Group;
+          import io.github.whatheheckisthis.fsgov.model.NfsClientRule;
+          import io.github.whatheheckisthis.fsgov.model.NfsExport;
+          import io.github.whatheheckisthis.fsgov.model.PathEntry;
+          import io.github.whatheheckisthis.fsgov.model.PermissionSet;
+          import io.github.whatheheckisthis.fsgov.model.PosixMode;
+          import io.github.whatheheckisthis.fsgov.model.ShareEntitlement;
+          import io.github.whatheheckisthis.fsgov.parse.ExportsParser;
+          import io.github.whatheheckisthis.fsgov.parse.GetfaclParser;
+          import io.github.whatheheckisthis.fsgov.parse.ParsedAcl;
+          import io.github.whatheheckisthis.fsgov.plan.ChangePlan;
+          import io.github.whatheheckisthis.fsgov.plan.ChangePlanCodec;
+          import io.github.whatheheckisthis.fsgov.plan.ChangePlanner;
+          import io.github.whatheheckisthis.fsgov.plan.PlanWarning;
+          import io.github.whatheheckisthis.fsgov.plan.ProvisioningRequest;
+
+          import java.nio.file.Files;
+          import java.nio.file.Path;
+          import java.util.ArrayList;
+          import java.util.Arrays;
+          import java.util.List;
+          import java.util.Set;
+          import java.util.TreeSet;
+
+          /** Capture driver: runs fsgov-core against a collector inventory taken from the runner. */
+          public class Capture {
+
+              static final String FIN = "/srv/finance";
+              static final String AUD = "/srv/audit";
+              static final String SCR = "/srv/scratch";
+
+              static EntitlementCatalog catalog() {
+                  return EntitlementCatalog.of(
+                          new ShareEntitlement("fs_fin_ro", 4100, FIN, PermissionSet.READ_EXECUTE, true, "finance.owner"),
+                          new ShareEntitlement("fs_fin_rw", 4101, FIN, PermissionSet.ALL, true, "finance.owner"),
+                          new ShareEntitlement("fs_audit_ro", 4200, AUD, PermissionSet.READ_EXECUTE, true, "audit.owner"),
+                          new ShareEntitlement("fs_audit_rw", 4201, AUD, PermissionSet.ALL, true, "audit.owner"),
+                          new ShareEntitlement("fs_scratch_rw", 4300, SCR, PermissionSet.ALL, false, "it.owner"));
+              }
+
+              static List<ProvisioningRequest> requests() {
+                  return List.of(
+                          ProvisioningRequest.addGroup("alice", "fs_fin_rw"),
+                          ProvisioningRequest.addGroup("carol", "fs_audit_ro"),
+                          ProvisioningRequest.removeDirect("carol", FIN));
+              }
+
+              static List<DesiredAccess> desired() {
+                  return List.of(
+                          new DesiredAccess("alice", FIN, PermissionSet.ALL),
+                          new DesiredAccess("bob", FIN, PermissionSet.READ_EXECUTE),
+                          new DesiredAccess("carol", AUD, PermissionSet.READ_EXECUTE));
+              }
+
+              static List<String> lines(Path dir, String name) throws Exception {
+                  Path p = dir.resolve(name);
+                  if (!Files.exists(p)) {
+                      return List.of();
+                  }
+                  return Files.readAllLines(p).stream().filter(l -> !l.isBlank() && !l.startsWith("#")).toList();
+              }
+
+              /** Same reading rules as fsgov-iiq-adapter InventoryReader, without the IdentityIQ types. */
+              static FilesystemSnapshot snapshot(Path dir) throws Exception {
+                  FilesystemSnapshot.Builder b = FilesystemSnapshot.builder();
+                  for (String line : lines(dir, "passwd")) {
+                      String[] f = line.split(":", -1);
+                      b.account(new Account(f[0], Integer.parseInt(f[2]), Integer.parseInt(f[3])));
+                  }
+                  for (String line : lines(dir, "group")) {
+                      String[] f = line.split(":", -1);
+                      Set<String> members = f.length > 3 && !f[3].isEmpty() ? new TreeSet<>(Arrays.asList(f[3].split(","))) : Set.of();
+                      b.group(new Group(f[0], Integer.parseInt(f[2]), members, Set.of()));
+                  }
+                  List<ParsedAcl> acls = new GetfaclParser().parse(Files.readString(dir.resolve("acl.txt")));
+                  for (String line : lines(dir, "paths.tsv")) {
+                      String[] f = line.split("\t", -1);
+                      ParsedAcl acl = acls.stream().filter(a -> a.path().equals(f[0])).findFirst().orElse(null);
+                      b.path(new PathEntry(f[0], Integer.parseInt(f[1]), Integer.parseInt(f[2]), PosixMode.parse(f[3]),
+                              acl == null ? null : acl.acl(), FilesystemType.valueOf(f[4]), true, Boolean.parseBoolean(f[5])));
+                  }
+                  new ExportsParser().parse(Files.readString(dir.resolve("exports"))).forEach(b::export);
+                  return b.build();
+              }
+
+              static void title(String t) {
+                  System.out.println();
+                  System.out.println("== " + t);
+              }
+
+              public static void main(String[] args) throws Exception {
+                  String mode = args[0];
+                  Path inv = Path.of(args[1]);
+                  FilesystemSnapshot s = snapshot(inv);
+                  switch (mode) {
+                      case "inventory" -> inventory(s);
+                      case "plan" -> plan(s, Path.of(args[2]));
+                      case "certify" -> certify(s, args[2]);
+                      default -> throw new IllegalArgumentException(mode);
+                  }
+              }
+
+              static void inventory(FilesystemSnapshot s) {
+                  title("GetfaclParser + paths.tsv: governed paths read from " + s.paths().size() + " getfacl blocks");
+                  for (PathEntry p : s.paths().values()) {
+                      System.out.printf("%-14s uid=%-5d gid=%-5d mode=%s fs=%s acl=%s%n", p.path(), p.uid(), p.gid(),
+                              p.mode().toOctal(), p.filesystem(), p.aclEnabled() ? "on" : "off");
+                      if (p.acl() != null) {
+                          System.out.println("    " + p.acl().toText().replace("\n", "\n    ").stripTrailing());
+                      }
+                  }
+                  title("ExportsParser: exports(5) rules (" + s.exports().size() + " exports)");
+                  for (NfsExport x : s.exports()) {
+                      for (NfsClientRule r : x.clients()) {
+                          System.out.printf("%-14s %-15s rw=%-5s root_squash=%-5s all_squash=%-5s anon=%d:%d sec=%s%n", x.path(),
+                                  r.client(), r.readWrite(), r.rootSquash(), r.allSquash(), r.anonUid(), r.anonGid(), r.security());
+                      }
+                  }
+                  title("AccessEvaluator: effective access, local and over NFSv3 from client backup01");
+                  AccessEvaluator ev = new AccessEvaluator(s);
+                  for (String a : List.of("root", "alice", "bob", "carol")) {
+                      for (String p : List.of(FIN, AUD)) {
+                          var local = ev.evaluate(a, p, AccessContext.LOCAL);
+                          var nfs = ev.evaluate(a, p, AccessContext.nfs("backup01"));
+                          System.out.printf("%-6s %-13s local=%s (%s)%n       %-13s nfs=%s (%s)%n", a, p, local.permissions(), local.source(),
+                                  "", nfs.permissions(), nfs.source());
+                      }
+                  }
+              }
+
+              static void plan(FilesystemSnapshot s, Path out) throws Exception {
+                  ChangePlan plan = new ChangePlanner(catalog()).plan(s, requests());
+                  title("ChangePlanner: requests");
+                  requests().forEach(r -> System.out.println("  " + r.operation() + " " + r.account() + " " + r.attribute() + "=" + r.value()));
+                  title("ChangePlanner: " + plan.steps().size() + " ordered steps (display form)");
+                  plan.steps().forEach(st -> System.out.printf("  %-18s %s%n", st.phase(), st.equivalentCommand()));
+                  title("Warnings (" + plan.warnings().size() + ")");
+                  for (PlanWarning w : plan.warnings()) {
+                      System.out.println("  " + w.code() + " " + w.account() + ": " + w.detail());
+                  }
+                  title("Already satisfied (" + plan.alreadySatisfied().size() + ")");
+                  plan.alreadySatisfied().forEach(x -> System.out.println("  " + x));
+                  String encoded = new ChangePlanCodec().encode(plan.steps());
+                  Files.writeString(out.resolve("plan.fsgov"), encoded);
+                  Files.write(out.resolve("plan.display"), plan.describe());
+                  int back = new ChangePlanCodec().decode(encoded).size();
+                  title("ChangePlanCodec: encoded " + plan.steps().size() + " steps, decoded " + back);
+                  System.out.print(encoded);
+              }
+
+              static void certify(FilesystemSnapshot s, String label) {
+                  EvidenceBundle bundle = new AccessDiffer(s).diff(label, desired(), List.of("alice", "bob", "carol"), List.of(FIN, AUD));
+                  title("AccessDiffer: evidence bundle '" + label + "' (" + bundle.records().size() + " records)");
+                  System.out.printf("  %-6s %-13s %-8s %-8s %-9s %s%n", "ACCOUNT", "PATH", "DESIRED", "ACTUAL", "STATUS", "SOURCE");
+                  for (EvidenceRecord r : bundle.records()) {
+                      System.out.printf("  %-6s %-13s %-8s %-8s %-9s %s%n", r.account(), r.path(), r.desired(), r.actual(), r.status(), r.source());
+                  }
+                  System.out.println("  sha256 " + bundle.sha256());
+                  List<Finding> findings = new OrphanDetector(s, catalog()).detect();
+                  title("OrphanDetector: " + findings.size() + " findings");
+                  for (Finding f : findings) {
+                      System.out.printf("  %-20s %-13s %-10s %s%n", f.type(), f.path(), f.subject(), f.detail());
+                  }
+                  if (!label.startsWith("after")) {
+                      return;
+                  }
+                  ChangePlan again = new ChangePlanner(catalog()).plan(s, requests());
+                  title("ChangePlanner: same requests against this snapshot: " + again.steps().size() + " steps, noOp=" + again.isNoOp());
+                  again.describe().forEach(x -> System.out.println("  " + x));
+                  again.alreadySatisfied().forEach(x -> System.out.println("  satisfied: " + x));
+              }
+          }
+          JAVA
+      - name: Build, test and capture
+        env:
+          DISPLAY: ':99'
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/docs/screenshots"
+          LOG=/tmp/cap/logs
+          mkdir -p "$OUT" "$LOG"
+          Xvfb :99 -screen 0 2400x3200x24 >/dev/null 2>&1 &
+          sleep 2
+
+          shot() {
+            local name="$1" file="$2" rows cols pid wid
+            rows=$(( $(wc -l < "$file") + 1 ))
+            cols=$(expand "$file" | awk '{ if (length > m) m = length } END { print m + 2 }')
+            if [ "$cols" -lt 90 ]; then cols=90; fi
+            xterm -T "cap-$name" -geometry "${cols}x${rows}+0+0" -fa 'DejaVu Sans Mono' -fs 10 \
+              -bg '#0d1117' -fg '#e6edf3' -b 10 +sb -e bash -c "cat '$file'; sleep 120" &
+            pid=$!
+            wid=$(xdotool search --sync --name "cap-$name" | head -n 1)
+            sleep 2
+            import -window "$wid" "$OUT/$name.png"
+            kill "$pid" || true
+          }
+
+          run() {
+            local file="$1"; shift
+            printf '$ %s\n' "$*" >> "$file"
+            bash -c "$*" >> "$file" 2>&1
+          }
+
+          # 1. Maven build and unit tests
+          mvn -B -ntp verify 2>&1 | tee "$LOG/mvn.log"
+          { printf '$ mvn -B -ntp verify   (summary lines from the build log)\n'
+            grep -E 'Tests run:|Reactor Summary|fsgov-|BUILD|Total time' "$LOG/mvn.log" | sed -e 's/^\[INFO\] //' -e 's/ -- in io.github.whatheheckisthis.fsgov./  /'
+          } > "$LOG/01-build.txt"
+          shot 01-maven-build-tests "$LOG/01-build.txt"
+
+          # 2. JaCoCo report rendered by headless Chrome
+          google-chrome --headless=new --no-sandbox --hide-scrollbars --window-size=1280,560 \
+            --screenshot="$OUT/02-jacoco-coverage.png" \
+            "file://$GITHUB_WORKSPACE/src/fsgov-core/target/site/jacoco/index.html"
+
+          # 3. POSIX ACL fixture on the runner's file system
+          F="$LOG/03-fixture.txt"; : > "$F"
+          run "$F" "sudo groupadd -g 2990 finsvc && sudo useradd -M -u 2990 -g 2990 finsvc"
+          run "$F" "for u in alice:2001 bob:2002 carol:2003; do sudo groupadd -g \${u#*:} \${u%:*}; sudo useradd -M -u \${u#*:} -g \${u#*:} \${u%:*}; done"
+          run "$F" "sudo groupadd -g 4100 fs_fin_ro && sudo groupadd -g 4200 fs_audit_ro && sudo gpasswd -a bob fs_fin_ro"
+          run "$F" "sudo mkdir -p /srv/finance /srv/audit /srv/scratch"
+          run "$F" "sudo chown finsvc:finsvc /srv/finance && sudo chmod 2750 /srv/finance && sudo chmod 0750 /srv/audit && sudo chmod 1777 /srv/scratch"
+          run "$F" "sudo setfacl -m group:fs_fin_ro:r-x,default:group:fs_fin_ro:r-x /srv/finance"
+          run "$F" "sudo setfacl -m user:carol:rwx /srv/finance   # drift: direct grant outside IdentityIQ"
+          run "$F" "sudo setfacl -m user:7777:r-x /srv/audit      # drift: entry for a deleted uid"
+          run "$F" "findmnt -no SOURCE,FSTYPE -T /srv"
+          run "$F" "sudo getfacl -p /srv/finance /srv/audit /srv/scratch"
+          shot 03-posix-acl-fixture "$F"
+
+          printf '%s\n' \
+            '# /etc/exports fixture (exports(5) syntax), not loaded into the kernel' \
+            '/srv/finance 10.20.0.0/16(rw,sync,root_squash) backup01(ro,no_root_squash)' \
+            '/srv/audit -ro,sync 10.20.8.0/24 \' \
+            '    auditor01(rw,root_squash)' > /tmp/cap/exports
+
+          collect() {
+            local d="$1" p fs acl
+            mkdir -p "$d"
+            getent passwd root finsvc alice bob carol > "$d/passwd"
+            getent group root finsvc alice bob carol fs_fin_ro fs_fin_rw fs_audit_ro fs_audit_rw > "$d/group" || true
+            sudo getfacl -p /srv/finance /srv/audit /srv/scratch > "$d/acl.txt"
+            : > "$d/paths.tsv"
+            for p in /srv/finance /srv/audit /srv/scratch; do
+              fs=$(findmnt -no FSTYPE -T "$p" | tr '[:lower:]' '[:upper:]')
+              sudo touch "$p/.aclprobe"
+              if sudo setfacl -m user:nobody:r "$p/.aclprobe" 2>/dev/null; then acl=true; else acl=false; fi
+              sudo rm -f "$p/.aclprobe"
+              printf '%s\t%s\t%s\t%04d\t%s\t%s\n' "$p" $(stat -c '%u %g' "$p") "$(stat -c '%a' "$p")" "$fs" "$acl" >> "$d/paths.tsv"
+            done
+            cp /tmp/cap/exports "$d/exports"
+          }
+
+          CORE=$(ls "$GITHUB_WORKSPACE"/src/fsgov-core/target/fsgov-core-*.jar | grep -v sources | head -n 1)
+          drv() { java -cp "$CORE" /tmp/cap/Capture.java "$@"; }
+
+          collect /tmp/cap/inv-before
+          F="$LOG/04-inventory.txt"; : > "$F"
+          run "$F" "cat /tmp/cap/inv-before/paths.tsv"
+          run "$F" "cat /tmp/cap/inv-before/exports"
+          { printf '$ java -cp fsgov-core.jar Capture.java inventory inv-before\n'; drv inventory /tmp/cap/inv-before; } >> "$F" 2>&1
+          shot 04-inventory-parse-evaluate "$F"
+
+          F="$LOG/05-plan.txt"
+          { printf '$ java -cp fsgov-core.jar Capture.java plan inv-before\n'; drv plan /tmp/cap/inv-before /tmp/cap; } > "$F" 2>&1
+          shot 05-change-plan "$F"
+
+          F="$LOG/06-cert-before.txt"
+          { printf '$ java -cp fsgov-core.jar Capture.java certify inv-before before-remediation\n'
+            drv certify /tmp/cap/inv-before before-remediation; } > "$F" 2>&1
+          shot 06-certification-evidence-before "$F"
+
+          # 7. Stand-in for the host executor: apply the plan's display form on this runner
+          F="$LOG/07-apply.txt"; : > "$F"
+          while IFS= read -r step; do run "$F" "sudo $step"; done < /tmp/cap/plan.display
+          run "$F" "getent group fs_fin_rw fs_audit_ro fs_fin_ro"
+          run "$F" "sudo getfacl -p /srv/finance /srv/audit"
+          shot 07-plan-applied-getfacl "$F"
+
+          collect /tmp/cap/inv-after
+          F="$LOG/08-cert-after.txt"
+          { printf '$ java -cp fsgov-core.jar Capture.java certify inv-after after-remediation\n'
+            drv certify /tmp/cap/inv-after after-remediation; } > "$F" 2>&1
+          shot 08-certification-evidence-after "$F"
+
+          cp "$LOG"/*.txt "$OUT/"
+          cp -r /tmp/cap/inv-before /tmp/cap/inv-after "$OUT/"
+          ls -l "$OUT"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fsgov-captures
+          path: docs/screenshots
