@@ -239,7 +239,7 @@ jobs:
             cols=$(expand "$file" | awk '{ if (length > m) m = length } END { print m + 2 }')
             if [ "$cols" -lt 90 ]; then cols=90; fi
             xterm -T "cap-$name" -geometry "${cols}x${rows}+0+0" -fa 'DejaVu Sans Mono' -fs 10 \
-              -bg '#0d1117' -fg '#e6edf3' -b 10 +sb -e bash -c "cat '$file'; sleep 120" &
+              -bg '#0d1117' -fg '#e6edf3' -b 10 +sb -e bash -c "cat '$file'; printf '\\033[?25l'; sleep 120" &
             pid=$!
             wid=$(xdotool search --sync --name "cap-$name" | head -n 1)
             sleep 2
@@ -256,7 +256,8 @@ jobs:
           # 1. Maven build and unit tests
           mvn -B -ntp verify 2>&1 | tee "$LOG/mvn.log"
           { printf '$ mvn -B -ntp verify   (summary lines from the build log)\n'
-            grep -E 'Tests run:|Reactor Summary|fsgov-|BUILD|Total time' "$LOG/mvn.log" | sed -e 's/^\[INFO\] //' -e 's/ -- in io.github.whatheheckisthis.fsgov./  /'
+            grep -E 'surefire:.*@|Tests run:|Reactor Summary|\.\.\. (SUCCESS|FAILURE)|BUILD|Total time' "$LOG/mvn.log" \
+              | sed -e 's/^\[INFO\] //' -e 's/^\[ERROR\] //' -e 's/, Time elapsed: [0-9.]* s -- in io.github.whatheheckisthis.fsgov./  /'
           } > "$LOG/01-build.txt"
           shot 01-maven-build-tests "$LOG/01-build.txt"
 
